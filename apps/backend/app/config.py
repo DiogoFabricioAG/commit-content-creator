@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     github_client_id: str | None = None
     github_client_secret: str | None = None
     github_redirect_uri: str = "http://localhost:8000/auth/github/callback"
-    github_app_url: str | None = "https://github.com/apps/laborin-pow/installations/new"
+    github_app_url: str | None = "https://github.com/apps/laborin-ver1/installations/new"
+
 
 
     openai_api_key: str | None = None

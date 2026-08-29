@@ -30,8 +30,9 @@ async def github_login() -> RedirectResponse:
         return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
 
     # Fallback to GitHub App installation link
-    app_url = settings.github_app_url or "https://github.com/apps/laborin-pow/installations/new"
+    app_url = settings.github_app_url or "https://github.com/apps/laborin-ver1/installations/new"
     return RedirectResponse(url=app_url, status_code=status.HTTP_302_FOUND)
+
 
 
 @router.get("/callback")
