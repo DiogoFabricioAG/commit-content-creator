@@ -143,6 +143,20 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Momento de demo:** Un desarrollador hace `git push` con 3 commits relacionados; el dashboard muestra la actividad en tiempo real, se detecta una sola historia, llega a WhatsApp, el usuario pide "hazlo más corto" recibiendo V2, luego responde "Ta bueno, publícalo noma", se publica en LinkedIn y recibe confirmación inmediata.
 
+### 2026-08-29 · Laborin sale a internet
+
+**Qué cambió:** desplegamos Web y Backend en `2.24.64.161` bajo `laborin.meowlab.tech`, usando Docker en la red interna existente y Caddy como terminación HTTPS y reverse proxy.
+
+**Decisión:** el hostname público queda separado de las aplicaciones existentes del VPS. Caddy enruta `/health`, `/webhooks/github` y el callback reservado al Backend; el resto llega al dashboard Web.
+
+**Evidencia:** el certificado TLS de Let’s Encrypt se obtuvo correctamente; Homepage responde `200`; `/health` responde `200` con `convex_configured=true`; el webhook responde `405 Allow: POST` ante GET, confirmando que alcanza FastAPI sin enviar un evento real.
+
+**Momento de demo:** ya podemos abrir Proof of Work desde una URL pública y conectar la GitHub App con un endpoint estable.
+
+**Pendiente explícito:** `https://laborin.meowlab.tech/auth/github/callback` está reservado en el proxy, pero devuelve `404` hasta implementar OAuth GitHub con validación de `state` e intercambio seguro del código.
+
+**Siguiente paso:** implementar el callback OAuth GitHub y crear la App usando Homepage `https://laborin.meowlab.tech/` y Webhook `https://laborin.meowlab.tech/webhooks/github`.
+
 ## Hitos que debemos registrar
 
 
