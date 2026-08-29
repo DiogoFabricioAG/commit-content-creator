@@ -266,6 +266,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Momento de demo:** el proyecto se siente parte del universo del hackathon desde el primer vistazo, pero conserva una identidad funcional propia y comunica el recorrido del producto en segundos.
 
+### 2026-08-29 · Tercera piedra: el historial se convierte en un digest
+
+**Qué vimos:** el pipeline actual guardaba una historia y un post por commit. Eso demuestra ingestión, pero no sirve para el acto principal de la demo: contar todo el proyecto como una sola evolución.
+
+**Qué construimos:** `HistoricalDigestBuilder` filtra cambios operativos cuando existe evidencia útil, conserva los commits descartados para auditoría y compone una sola `StoryDetectionResult` con un único `LinkedInDraftResult`. El generador recibe las preferencias editoriales sin acoplarse a la landing.
+
+**Decisión:** el digest no elimina ni reescribe la historia granular ya almacenada. Produce una vista agregada e idempotente que después podrá persistirse como una ejecución propia y conectarse a la acción autenticada de la plataforma.
+
+**Evidencia:** tres pruebas cubren agrupación de commits, filtrado de lockfiles y fallback cuando un repositorio contiene únicamente cambios operativos.
+
+**Siguiente paso:** exponerlo mediante un servicio autenticado, persistir la ejecución en Convex y asociar una sola aprobación al digest.
+
 ## Hitos que debemos registrar
 
 

@@ -126,7 +126,7 @@ Después de ese push no se deben hacer commits correctivos en la misma corrida. 
 
 ### Prioridad 5 · Crítica
 
-- [ ] **M20-01 · Historical digest API:** listar commits paginados, agruparlos y crear una ejecución idempotente de digest.
+- [ ] **M20-01 · Historical digest API:** integrar `HistoricalDigestBuilder`, listar commits paginados y crear una ejecución idempotente de digest.
 - [ ] **M20-02 · Preferencias en generación:** cargar el perfil del usuario y aplicarlo a idioma, voz, longitud, formato, links y media.
 - [ ] **M20-08 · Paquete multimedia del digest:** coordinar texto, enlaces, imagen, video y diagrama de arquitectura bajo una misma versión y aprobación.
 - [ ] **M21-01 · Trigger `final`:** detectar el commit final y lanzar el digest histórico sin enviar mensajes por cada commit.

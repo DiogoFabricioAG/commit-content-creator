@@ -306,11 +306,12 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
                         onChange={(e) => setOverrideRepo(e.target.value)}
                         className="mt-1 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs font-mono text-white focus:outline-none"
                       >
-                        {repositories.map((r) => (
+                        {repositories.map((r: { _id: string; fullName: string }) => (
                           <option key={r._id} value={r.fullName}>
                             {r.fullName}
                           </option>
                         ))}
+
                       </select>
                     </div>
                   ) : (
