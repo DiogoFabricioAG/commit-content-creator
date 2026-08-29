@@ -64,6 +64,23 @@ def test_parse_kapso_v2_message_uses_kapso_phone_number() -> None:
     assert inbound.body == "publícalo"
 
 
+def test_parse_kapso_normalizes_meta_phone_number_without_plus() -> None:
+    payload = {
+        "data": {
+            "message": {
+                "id": "wamid.meta-123",
+                "from": "51923790280",
+                "text": {"body": "publícalo"},
+            }
+        }
+    }
+
+    inbound = parse_kapso_inbound_message(payload)
+
+    assert inbound is not None
+    assert inbound.from_phone == "+51923790280"
+
+
 def test_parse_kapso_buffered_v2_messages() -> None:
     payload = {
         "type": "whatsapp.message.received",

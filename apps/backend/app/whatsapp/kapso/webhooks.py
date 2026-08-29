@@ -9,6 +9,13 @@ class InvalidKapsoSignature(ValueError):
     """Raised when a Kapso webhook cannot be authenticated."""
 
 
+def _normalize_phone_number(phone: str) -> str:
+    normalized = phone.strip()
+    if normalized.isdigit():
+        return f"+{normalized}"
+    return normalized
+
+
 def verify_kapso_signature(
     body: bytes,
     signature: str | None,
@@ -94,7 +101,7 @@ def _parse_kapso_message(payload: dict[str, Any]) -> KapsoInboundMessage | None:
 
     return KapsoInboundMessage(
         message_id=message_id,
-        from_phone=from_phone,
+        from_phone=_normalize_phone_number(from_phone),
         body=body,
         timestamp=int(timestamp_value or 0),
         raw_payload=payload,
