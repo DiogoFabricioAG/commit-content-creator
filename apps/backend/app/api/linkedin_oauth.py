@@ -1,5 +1,4 @@
 import uuid
-from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
@@ -25,7 +24,8 @@ async def linkedin_login() -> RedirectResponse:
 async def linkedin_callback(
     code: str = Query(...),
     state: str = Query(...),
-) -> dict[str, Any]:
+) -> RedirectResponse:
+
     settings = get_settings()
     convex = ConvexGateway(settings)
     oauth = LinkedInOAuth(settings)
@@ -62,8 +62,9 @@ async def linkedin_callback(
             status="completed",
         )
 
-    return {
-        "status": "connected",
-        "provider": "linkedin",
-        "author_urn": token_data.author_urn,
-    }
+    redirect_target = "https://laborin.meowlab.tech/dashboard?tab=onboarding&status=linkedin_connected"
+    if settings.app_env != "production" and "localhost" in settings.linkedin_redirect_uri:
+        redirect_target = "http://localhost:3000/dashboard?tab=onboarding&status=linkedin_connected"
+
+    return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+

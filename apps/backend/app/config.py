@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     demo_mode: bool = True
     github_webhook_secret: str | None = None
     github_token: str | None = None
+    github_client_id: str | None = None
+    github_client_secret: str | None = None
+    github_redirect_uri: str = "http://localhost:8000/auth/github/callback"
+    github_app_url: str | None = "https://github.com/apps/laborin-pow/installations/new"
+
 
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o"

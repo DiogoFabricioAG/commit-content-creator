@@ -1,0 +1,130 @@
+import uuid
+
+import httpx
+from fastapi import APIRouter, Query, status
+from fastapi.responses import RedirectResponse
+
+from app.config import get_settings
+from app.integrations.convex_client import ConvexGateway
+
+router = APIRouter(prefix="/auth/github", tags=["github"])
+
+
+@router.get("/login")
+async def github_login() -> RedirectResponse:
+    settings = get_settings()
+    state = str(uuid.uuid4())
+
+    if settings.github_client_id:
+        redirect_uri = settings.github_redirect_uri
+        if settings.app_env == "production" or "laborin.meowlab.tech" in str(settings.linkedin_redirect_uri):
+            redirect_uri = "https://laborin.meowlab.tech/auth/github/callback"
+
+        url = (
+            f"https://github.com/login/oauth/authorize"
+            f"?client_id={settings.github_client_id}"
+            f"&redirect_uri={redirect_uri}"
+            f"&scope=read:user,repo,read:org"
+            f"&state={state}"
+        )
+        return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
+
+    # Fallback to GitHub App installation link
+    app_url = settings.github_app_url or "https://github.com/apps/laborin-pow/installations/new"
+    return RedirectResponse(url=app_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/callback")
+async def github_callback(
+    code: str | None = Query(None),
+    state: str | None = Query(None),
+    installation_id: str | None = Query(None),
+) -> RedirectResponse:
+    settings = get_settings()
+    convex = ConvexGateway(settings)
+
+    redirect_target = "https://laborin.meowlab.tech/dashboard?tab=onboarding&status=github_connected"
+    if settings.app_env != "production" and "localhost" in settings.linkedin_redirect_uri:
+        redirect_target = "http://localhost:3000/dashboard?tab=onboarding&status=github_connected"
+
+    # If installed via GitHub App
+    if installation_id and not code:
+        if convex.is_configured:
+            user_id = convex.get_or_create_default_user()
+            convex.record_activity(
+                user_id=user_id,
+                type_="github.app.installed",
+                label=f"GitHub App installed with ID {installation_id}",
+                status="completed",
+            )
+        return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+
+    if not code:
+        return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+
+    # Exchange code for access token if client credentials exist
+    access_token = None
+    if settings.github_client_id and settings.github_client_secret:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(
+                    "https://github.com/login/oauth/access_token",
+                    headers={"Accept": "application/json"},
+                    json={
+                        "client_id": settings.github_client_id,
+                        "client_secret": settings.github_client_secret,
+                        "code": code,
+                    },
+                )
+                res.raise_for_status()
+                token_data = res.json()
+                access_token = token_data.get("access_token")
+        except Exception:
+            pass
+
+    if access_token and convex.is_configured:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # Fetch user profile
+                user_res = await client.get(
+                    "https://api.github.com/user",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/vnd.github+json",
+                        "User-Agent": "ProofOfWork-App",
+                    },
+                )
+                if user_res.status_code == 200:
+                    gh_user = user_res.json()
+                    user_id = convex.get_or_create_default_user()
+                    # Sync repositories
+                    repos_res = await client.get(
+                        "https://api.github.com/user/repos?per_page=30&sort=updated",
+                        headers={
+                            "Authorization": f"Bearer {access_token}",
+                            "Accept": "application/vnd.github+json",
+                            "User-Agent": "ProofOfWork-App",
+                        },
+                    )
+                    if repos_res.status_code == 200:
+                        repos = repos_res.json()
+                        for repo in repos:
+                            full_name = repo.get("full_name")
+                            default_branch = repo.get("default_branch", "main")
+                            if full_name:
+                                convex.get_or_create_repository(
+                                    user_id=user_id,
+                                    full_name=full_name,
+                                    default_branch=default_branch,
+                                )
+
+                    convex.record_activity(
+                        user_id=user_id,
+                        type_="github.account.connected",
+                        label=f"GitHub account @{gh_user.get('login', 'developer')} connected",
+                        status="completed",
+                    )
+        except Exception:
+            pass
+
+    return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)

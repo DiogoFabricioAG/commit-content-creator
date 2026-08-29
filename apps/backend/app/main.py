@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.github_oauth import router as github_oauth_router
 from app.api.github_webhooks import router as github_webhook_router
 from app.api.health import router as health_router
 from app.api.kapso_webhooks import router as kapso_webhook_router
@@ -23,6 +24,8 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(github_oauth_router)
 app.include_router(github_webhook_router)
 app.include_router(kapso_webhook_router)
 app.include_router(linkedin_oauth_router)
+
