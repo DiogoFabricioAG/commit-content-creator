@@ -118,6 +118,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** generar bindings oficiales, ejecutar typecheck:generated y cerrar M0-04.
 
+### 2026-08-29 · Convex ready: primera persistencia real
+
+**Qué cambió:** el CLI de Convex configuró el deployment de desarrollo, generó bindings oficiales y sincronizó schema, queries y mutations.
+
+**Decisión:** la estructura del paquete usa `convex/convex/` como directorio de funciones reconocido por el CLI; los archivos `_generated` se versionan y los auxiliares locales del CLI quedan fuera del repositorio.
+
+**Evidencia:** `typecheck:generated` pasa; `pnpm check` pasa; el smoke real insertó un evento fixture, repitió el mismo delivery ID y confirmó `duplicate=true` y `status=received`.
+
+**Momento de demo:** por primera vez un evento entra al sistema, queda persistido y no se duplica ante un reintento.
+
+**Siguiente paso:** cerrar el borde GitHub de M1-01 y conectar su request firmado con esta mutation.
+
 ## Hitos que debemos registrar
 
 | Hito | Evidencia técnica | Momento narrativo |

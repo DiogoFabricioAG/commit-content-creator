@@ -54,9 +54,9 @@ El último punto fue un bloqueo operativo para ramas y PRs y quedó resuelto al 
 - [x] M0-01 Bootstrap del workspace.
 - [x] M0-02 Esqueleto Web.
 - [x] M0-03 Esqueleto FastAPI.
-- [ ] M0-04 Modelo Convex inicial: schema y funciones escritos; codegen/typecheck de bindings pendiente.
+- [x] M0-04 Modelo Convex inicial: schema, funciones, codegen y deployment de desarrollo verificados.
 - [x] M0-05 Contratos y configuración.
-- [ ] M0-06 Quality gate y fixture local: integración pendiente.
+- [x] M0-06 Quality gate y fixture local: checks completos y smoke de idempotencia ejecutado.
 
 ## Desglose delegable
 
@@ -113,11 +113,12 @@ El último punto fue un bloqueo operativo para ramas y PRs y quedó resuelto al 
 
 **Dependencias:** M0-01.
 
-**Entregables:** `convex/schema.ts`, funciones mínimas de consulta/mutación y tipos compartidos para `users`, `repositories`, `githubEvents`, `commits` y `activityEvents`.
+**Entregables:** `convex/convex/schema.ts`, funciones mínimas de consulta/mutación y tipos compartidos para `users`, `repositories`, `githubEvents`, `commits` y `activityEvents`.
 
 **Criterios de aceptación:**
 
 - El esquema se valida con Convex.
+- Los bindings oficiales existen en `convex/convex/_generated` y `typecheck:generated` pasa.
 - `githubEvents.deliveryId` tiene un índice que permita deduplicación.
 - El modelo no mezcla datos de usuarios sin un `userId` o relación explícita.
 - Un evento y un commit pueden representar estados de procesamiento sin usar blobs opacos como sustituto del modelo.
@@ -152,6 +153,7 @@ El último punto fue un bloqueo operativo para ramas y PRs y quedó resuelto al 
 - El fixture no contiene tokens, teléfonos reales ni datos privados.
 - Un fallo de configuración muestra un mensaje accionable.
 - El pipeline local falla si lint, typecheck o tests fallan.
+- El smoke de Convex confirma persistencia y deduplicación por `deliveryId`.
 
 ## Orden recomendado y paralelización
 
@@ -165,17 +167,27 @@ M0-01 Bootstrap
 
 M0-02, M0-03, M0-04 y M0-05 pueden avanzar en paralelo después de M0-01, siempre que respeten los contratos de [ARCHITECTURE-CONTRACTS.md](./ARCHITECTURE-CONTRACTS.md). M0-06 integra y verifica; no debe convertirse en una segunda implementación de cada módulo.
 
+## Evidencia de cierre
+
+```text
+pnpm check                                      ✓
+pnpm --filter @proof-of-work/convex typecheck:generated  ✓
+uv run python apps/backend/scripts/convex_smoke.py       ✓
+```
+
+El smoke test se ejecutó contra el deployment de desarrollo configurado por el CLI y no imprime la URL ni ningún valor del entorno.
+
 ## Definition of Done del milestone
 
-- [ ] Estructura de monorepo creada.
-- [ ] Web, backend y Convex tienen arranque documentado.
-- [ ] `/health` funciona localmente.
-- [ ] Esquema Convex valida y tiene índices iniciales.
-- [ ] Cliente Python de Convex está preparado para el primer vertical slice.
-- [ ] `.env.example` no contiene valores sensibles.
-- [ ] Tests, lint, typecheck y build pasan o existe un bloqueo documentado.
-- [ ] Una persona nueva puede reproducir el entorno desde cero.
-- [ ] Las tareas M0 están enlazadas en [TASK-BOARD.md](./TASK-BOARD.md).
+- [x] Estructura de monorepo creada.
+- [x] Web, backend y Convex tienen arranque documentado.
+- [x] `/health` funciona localmente.
+- [x] Esquema Convex valida y tiene índices iniciales.
+- [x] Cliente Python de Convex está preparado para el primer vertical slice.
+- [x] `.env.example` no contiene valores sensibles.
+- [x] Tests, lint, typecheck y build pasan.
+- [x] Una persona nueva puede reproducir el entorno desde cero.
+- [x] Las tareas M0 están enlazadas en [TASK-BOARD.md](./TASK-BOARD.md).
 
 ## Handoff de cierre
 

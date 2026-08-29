@@ -4,7 +4,7 @@ Proof of Work transforma trabajo real de desarrollo en historias publicables par
 
 ## Estado
 
-Milestone 0 — Foundation en construcción.
+Milestone 0 — Foundation listo; M1-01 es el siguiente corte de trabajo.
 
 La primera rebanada funcional es:
 
@@ -25,7 +25,8 @@ La planificación y las reglas de colaboración están en docs/README.md.
 1. Copiar .env.example a .env y completar solo las variables disponibles.
 2. Instalar JavaScript con pnpm install.
 3. Crear el entorno Python con uv sync.
-4. Si se usará Convex localmente, ejecutar pnpm dev:convex y copiar la URL pública en CONVEX_URL y NEXT_PUBLIC_CONVEX_URL.
+4. Ejecutar `pnpm dev:convex`; el CLI configura el deployment de desarrollo y genera los bindings en `convex/convex/_generated`.
+5. Copiar la URL pública a `CONVEX_URL` y `NEXT_PUBLIC_CONVEX_URL` en el entorno local si se van a conectar Backend y Web.
 
 ## Desarrollo
 
@@ -42,6 +43,10 @@ La planificación y las reglas de colaboración están en docs/README.md.
 - Backend lint: uv run ruff check apps/backend
 - Backend types: uv run pyright apps/backend
 - Backend tests: pnpm test:backend
+- Convex bindings: pnpm --filter @proof-of-work/convex typecheck:generated
+- Convex smoke: `CONVEX_URL=<deployment-url> uv run python apps/backend/scripts/convex_smoke.py`
+
+El smoke test escribe un evento fixture en el deployment de desarrollo, repite la misma entrega y verifica que la segunda llamada sea deduplicada.
 
 ## Seguridad local
 

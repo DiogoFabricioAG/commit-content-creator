@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["schema.ts"]
+  "include": ["convex/schema.ts"]
 }
