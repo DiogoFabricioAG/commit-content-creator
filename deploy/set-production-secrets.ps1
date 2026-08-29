@@ -147,12 +147,12 @@ $sshArgs = @(
 )
 
 Write-Host "Enviando secretos de forma segura al VPS..." -ForegroundColor Cyan
-$sshEnvCommand = "JSON_UPDATES='$($jsonPayload.Replace("'", "'\\''"))' bash -c '$remoteCommand'"
 
-& ssh @sshArgs $sshEnvCommand
+$jsonPayload | & ssh @sshArgs $remoteCommand
 
 if ($LASTEXITCODE -ne 0) {
     throw "Fallo la actualizacion de secretos en el VPS (exit code $LASTEXITCODE)."
 }
+
 
 Write-Host "`nSecretos actualizados y servicio backend verificado en https://laborin.meowlab.tech/health" -ForegroundColor Green
