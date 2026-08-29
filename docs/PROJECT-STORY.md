@@ -86,6 +86,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** conectar el estado real de Convex sin perder esta lectura clara del pipeline.
 
+### 2026-08-29 · Primer borde seguro de GitHub
+
+**Qué cambió:** FastAPI verifica la firma SHA-256 sobre el cuerpo raw, normaliza eventos push y pull_request y prepara la persistencia asíncrona hacia Convex.
+
+**Decisión:** si falta la firma, el secreto o la URL de Convex, el endpoint no acepta el evento como procesado. La respuesta rápida no significa perder la trazabilidad: el evento se enviará a la mutation idempotente cuando esté desplegada.
+
+**Evidencia:** cuatro pruebas puras y dos pruebas HTTP cubren firma, normalización, eventos no soportados y bloqueo seguro sin Convex; Ruff, Pyright y pytest pasan.
+
+**Momento de demo previsto:** un push autenticado será reconocido por el sistema antes de que empiece el procesamiento lento.
+
+**Siguiente paso:** generar las funciones Convex y conectar deliveryId con la deduplicación persistente.
+
 ## Hitos que debemos registrar
 
 | Hito | Evidencia técnica | Momento narrativo |

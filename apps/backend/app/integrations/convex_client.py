@@ -1,6 +1,6 @@
-from convex import ConvexClient
-
 from app.config import Settings
+from app.schemas.github import NormalizedGitHubEvent
+from convex import ConvexClient
 
 
 class ConvexGateway:
@@ -18,3 +18,6 @@ class ConvexGateway:
         if self._client is None:
             raise RuntimeError("CONVEX_URL is required before using the Convex client")
         return self._client
+
+    def record_github_event(self, event: NormalizedGitHubEvent) -> None:
+        self.client.mutation("githubEvents:record", event.model_dump(mode="json"))

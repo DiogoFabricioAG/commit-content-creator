@@ -25,7 +25,7 @@ Estas tareas no comienzan hasta cerrar M0, pero ya tienen una secuencia clara:
 
 | ID | Tarea | Dependencias | Estado |
 |---|---|---|---|
-| M1-01 | Endpoint GitHub `push` con firma `X-Hub-Signature-256` | M0 | Backlog |
+| M1-01 | Endpoint GitHub `push` con firma `X-Hub-Signature-256` | M0 | **In progress** |
 | M1-02 | Idempotencia por `X-GitHub-Delivery` | M1-01, M0-04 | Backlog |
 | M1-03 | Persistencia de `githubEvent` y actividad | M1-02, M0-04 | Backlog |
 | M1-04 | Procesador fuera del request path | M1-03, M0-03 | Backlog |

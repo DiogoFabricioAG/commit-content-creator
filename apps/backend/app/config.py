@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     convex_url: str | None = None
     cors_origins: str = "http://localhost:3000"
     demo_mode: bool = True
+    github_webhook_secret: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
