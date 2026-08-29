@@ -8,6 +8,10 @@ from app.config import get_settings
 from app.integrations.convex_client import ConvexGateway
 from app.intelligence.approval_agent.agent import ApprovalAgent
 from app.intelligence.content_generator.generator import ContentGenerator
+from app.intelligence.media.image_generator import (
+    ImageGenerationUnavailable,
+    OpenAIImageGenerator,
+)
 from app.linkedin.publisher import LinkedInPublisher
 from app.schemas.approval import ApprovalDecision
 from app.schemas.kapso import KapsoInboundMessage
@@ -32,6 +36,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
 
     agent = ApprovalAgent(settings)
     content_gen = ContentGenerator(settings)
+    image_generator = OpenAIImageGenerator(settings)
     publisher = LinkedInPublisher(settings)
     kapso_client = KapsoClient(settings)
 
@@ -60,11 +65,64 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
             raw_title = latest_version.get("title")
             if isinstance(raw_title, str) and raw_title.strip():
                 latest_title = raw_title.strip()
+        image_url: str | None = None
+        if "image" in {
+            item.strip().lower()
+            for item in settings.default_content_formats.split(",")
+            if item.strip()
+        }:
+            story_id = str(post.get("storyId")) if post else ""
+            story_data = (
+                cast(
+                    dict[str, Any] | None,
+                    convex.client.query("stories:getById", {"storyId": story_id}),
+                )
+                if story_id
+                else None
+            )
+            story_summary = draft_body[:500]
+            if story_data:
+                raw_summary = story_data.get("summary")
+                if isinstance(raw_summary, str) and raw_summary.strip():
+                    story_summary = raw_summary.strip()
+            try:
+                generated_image = image_generator.generate_for_story(
+                    story_title=latest_title,
+                    story_summary=story_summary,
+                    post_body=draft_body,
+                )
+                stored_media = convex.upload_media(
+                    content=generated_image.data,
+                    mime_type=generated_image.mime_type,
+                )
+                convex.record_media_asset(
+                    post_version_id=current_version_id,
+                    kind="image",
+                    storage_id=stored_media["storageId"],
+                    mime_type=generated_image.mime_type,
+                    url=stored_media["url"],
+                    alt_text=f"Ilustración sobre {latest_title}",
+                    source="openai",
+                    prompt=generated_image.prompt,
+                )
+                image_url = stored_media["url"]
+                convex.record_activity(
+                    user_id=user_id,
+                    type_="media.image.generated",
+                    label="Generated image asset for the approved draft",
+                    status="completed",
+                    metadata={"postVersionId": current_version_id},
+                )
+            except ImageGenerationUnavailable as error:
+                logger.warning("Image generation unavailable: %s", error)
+            except Exception:
+                logger.exception("Image generation or storage failed")
         outbound = kapso_client.send_draft_for_approval(
             to_phone=inbound.from_phone,
             story_title=latest_title,
             post_body=draft_body,
             version=version_num,
+            image_url=image_url,
         )
         if outbound.message_id:
             convex.set_approval_outbound_message_id(
@@ -166,11 +224,13 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         raw_urn = social_acc.get("authorUrn") if social_acc else None
         author_urn = str(raw_urn) if raw_urn else "urn:li:person:developer"
         enc_token = str(social_acc.get("accessTokenEncrypted")) if social_acc else None
+        media_assets = convex.list_media_for_post_version(current_version_id)
 
         pub_res = publisher.publish_post(
             author_urn=author_urn,
             commentary=draft_body,
             encrypted_access_token=enc_token,
+            media=media_assets,
         )
 
         if pub_res.status == "published":

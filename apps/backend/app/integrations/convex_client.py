@@ -1,5 +1,6 @@
 from typing import Any, cast
 
+import httpx
 from convex.values import CoercibleToConvexValue
 
 from app.config import Settings
@@ -257,6 +258,60 @@ class ConvexGateway:
 
         result = self.client.mutation("postVersions:record", payload)
         return cast(str, result)
+
+    def upload_media(self, *, content: bytes, mime_type: str) -> dict[str, str]:
+        upload_url = cast(str, self.client.mutation("media:generateUploadUrl", {}))
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(
+                upload_url,
+                content=content,
+                headers={"Content-Type": mime_type},
+            )
+            response.raise_for_status()
+            data = cast(dict[str, Any], response.json())
+
+        storage_id = str(data.get("storageId") or "")
+        if not storage_id:
+            raise RuntimeError("Convex storage upload returned no storage ID")
+
+        media_url = self.client.query("media:getUrl", {"storageId": storage_id})
+        if not isinstance(media_url, str) or not media_url:
+            raise RuntimeError("Convex storage returned no public media URL")
+
+        return {"storageId": storage_id, "url": media_url}
+
+    def record_media_asset(
+        self,
+        *,
+        post_version_id: str,
+        kind: str,
+        storage_id: str,
+        mime_type: str,
+        url: str,
+        alt_text: str,
+        source: str = "generated",
+        prompt: str | None = None,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "postVersionId": post_version_id,
+            "kind": kind,
+            "storageId": storage_id,
+            "mimeType": mime_type,
+            "url": url,
+            "altText": alt_text,
+            "source": source,
+        }
+        if prompt:
+            payload["prompt"] = prompt
+        result = self.client.mutation("media:record", payload)
+        return cast(str, result)
+
+    def list_media_for_post_version(self, post_version_id: str) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "media:listForPostVersion",
+            {"postVersionId": post_version_id},
+        )
+        return cast(list[dict[str, Any]], result or [])
 
     def approve_post_version(self, version_id: str) -> None:
         self.client.mutation("postVersions:approve", {"versionId": version_id})

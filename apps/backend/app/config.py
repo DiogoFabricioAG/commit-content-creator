@@ -16,6 +16,10 @@ class Settings(BaseSettings):
 
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o"
+    openai_image_model: str = "gpt-image-2"
+    openai_image_size: str = "1536x1024"
+    openai_image_quality: Literal["low", "medium", "high"] = "low"
+    default_content_formats: str = "image"
 
     kapso_api_key: str | None = None
     kapso_phone_number_id: str | None = None

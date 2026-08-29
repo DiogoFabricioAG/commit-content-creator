@@ -182,6 +182,18 @@ export default defineSchema({
     .index("by_post", ["postId"])
     .index("by_post_version", ["postId", "version"]),
 
+  mediaAssets: defineTable({
+    postVersionId: v.id("postVersions"),
+    kind: v.union(v.literal("image"), v.literal("video"), v.literal("architecture")),
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+    url: v.optional(v.string()),
+    altText: v.string(),
+    source: v.string(),
+    prompt: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_post_version", ["postVersionId"]),
+
   socialAccounts: defineTable({
     userId: v.id("users"),
     provider: v.literal("linkedin"),
@@ -243,4 +255,3 @@ export default defineSchema({
     timestamp: v.number(),
   }).index("by_user_timestamp", ["userId", "timestamp"]),
 });
-

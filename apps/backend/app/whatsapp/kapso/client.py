@@ -121,18 +121,76 @@ class KapsoClient:
                 message_type="interactive",
             )
 
+    def send_image(
+        self,
+        to_phone: str,
+        image_url: str,
+        caption: str = "",
+    ) -> KapsoOutboundMessage:
+        if (
+            not self.settings.kapso_api_key
+            or not self.settings.kapso_phone_number_id
+            or self.settings.demo_mode
+        ):
+            msg_id = f"kapso_sim_{abs(hash(to_phone + image_url + caption))}"
+            return KapsoOutboundMessage(
+                to_phone=to_phone,
+                body=caption,
+                message_id=msg_id,
+                message_type="image",
+            )
+
+        headers = {
+            "X-API-Key": self.settings.kapso_api_key,
+            "Content-Type": "application/json",
+        }
+        image: dict[str, str] = {"link": image_url}
+        if caption:
+            image["caption"] = caption
+        payload: dict[str, Any] = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to_phone,
+            "type": "image",
+            "image": image,
+        }
+
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f"{self.base_url}/v24.0/{self.settings.kapso_phone_number_id}/messages",
+                headers=headers,
+                json=payload,
+            )
+            response.raise_for_status()
+            data = response.json()
+            messages = data.get("messages", [])
+            message_id = messages[0].get("id") if messages else data.get("id")
+            return KapsoOutboundMessage(
+                to_phone=to_phone,
+                body=caption,
+                message_id=message_id,
+                message_type="image",
+            )
+
     def send_draft_for_approval(
         self,
         to_phone: str,
         story_title: str,
         post_body: str,
         version: int = 1,
+        image_url: str | None = None,
     ) -> KapsoOutboundMessage:
         header = f'🔥 Encontré una historia para LinkedIn (V{version}):\n\n"{story_title}"'
         full_message = (
             f"{header}\n\n{post_body}\n\n"
             "Revisa el borrador y elige una acción. También puedes responder con texto."
         )
+        if image_url:
+            self.send_image(
+                to_phone,
+                image_url,
+                "🖼️ Imagen propuesta para acompañar la publicación.",
+            )
         return self.send_interactive_buttons(
             to_phone,
             full_message,
