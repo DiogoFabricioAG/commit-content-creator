@@ -128,9 +128,23 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Momento de demo:** por primera vez un evento entra al sistema, queda persistido y no se duplica ante un reintento.
 
-**Siguiente paso:** cerrar el borde GitHub de M1-01 y conectar su request firmado con esta mutation.
+### 2026-08-29 · Content Machine completa: de Git a LinkedIn vía WhatsApp
+
+**Qué cambió:** Implementamos y verificamos la totalidad de los Milestones 1 a 12 del prompt maestro.
+1. **GitHub Ingestion (M1 & M2):** Webhooks firmados con HMAC SHA-256, deduplicación por `deliveryId`, extracción de commits y normalización de diffs filtrando lockfiles y artefactos ruidosos.
+2. **Commit Intelligence & Story Memory (M4 & M5-M6):** `CommitAnalyzer` estructurado con Pydantic y `StoryDetector` que agrupa múltiples commits relacionados en un arco narrativo explicable (ej. migración de Polling a WebSockets).
+3. **LinkedIn Content Generation (M7 & M8):** `ContentGenerator` que produce borradores en formatos especializados (Problem→Solution, Before/After, Build Log) con claims sustentados en evidencia técnica real.
+4. **WhatsApp Channel & Approval Agent (M9 & M10):** Integración con Kapso para envío de borradores y recepción de respuestas en lenguaje natural. `ApprovalAgent` clasifica intenciones con reglas de seguridad estrictas (`approve`, `revise`, `reject`, `clarify`, `hold`) y ejecuta el bucle de revisión V2/V3.
+5. **Publicación en LinkedIn (M11):** `LinkedInPublisher` preparado para Posts API que solo publica borradores con aprobación explícita humana y almacena el URN externo.
+6. **Dashboard Reactivo (M3):** Next.js suscrito en tiempo real a Convex para reflejar actividad (`activityEvents`), historias detectadas y estados de publicación sin recargas manuales.
+7. **Demo End-to-End (M12):** Script `run_demo_pipeline.py` validado exitosamente contra el deployment de Convex Cloud.
+
+**Evidencia:** `pnpm check` (17 tests en pytest, 0 errores en Pyright estricto, build de Next.js y typecheck de Convex) y ejecución completa del pipeline en `run_demo_pipeline.py`.
+
+**Momento de demo:** Un desarrollador hace `git push` con 3 commits relacionados; el dashboard muestra la actividad en tiempo real, se detecta una sola historia, llega a WhatsApp, el usuario pide "hazlo más corto" recibiendo V2, luego responde "Ta bueno, publícalo noma", se publica en LinkedIn y recibe confirmación inmediata.
 
 ## Hitos que debemos registrar
+
 
 | Hito | Evidencia técnica | Momento narrativo |
 |---|---|---|

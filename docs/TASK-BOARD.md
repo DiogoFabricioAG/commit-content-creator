@@ -21,16 +21,20 @@ Usar `Blocked` cuando exista una dependencia externa o decisión material que no
 | M0-05 | Contratos y configuración | M0-01 | Tech Lead + Backend | **Done** | env.example, DTOs, contratos |
 | M0-06 | Quality gate y fixture local | M0-02, M0-03, M0-04, M0-05 | QA/DX | **Done** | `pnpm check` y smoke Convex reproducible |
 
-## Siguiente milestone preparado
+## Milestone 1 a 12 · Pipeline Completo (Proof of Work)
 
-Estas tareas no comienzan hasta cerrar M0, pero ya tienen una secuencia clara:
+| ID | Milestone | Dependencias | Responsable | Estado | Entregable / Evidencia |
+|---|---|---|---|---|---|
+| M1 | GitHub → Convex Ingestion | M0 | Backend | **Done** | Webhook HMAC SHA-256, deduplicación `deliveryId`, persistencia |
+| M2 | Commit Extraction & Normalizer | M1 | Backend | **Done** | Normalizador de diffs, filtrado de lockfiles/ruido, `commits:record` |
+| M3 | Live Activity Dashboard | M2 | Frontend | **Done** | Componente reactivo Next.js + Convex sync en vivo |
+| M4 | Commit Intelligence | M2 | AI / Backend | **Done** | `CommitAnalyzer` estructurado (Pydantic), tecnologías e impacto |
+| M5-M6 | Story Memory & Detection | M4 | AI / Backend | **Done** | `StoryDetector` para agrupar commits en arcos narrativos explicables |
+| M7-M8 | LinkedIn Draft Generation & OAuth | M5-M6 | AI / Backend | **Done** | `ContentGenerator` con claims grounded + OAuth 2.0 y cifrado Fernet |
+| M9-M10 | WhatsApp (Kapso) & Approval Agent | M7-M8 | AI / Backend | **Done** | `ApprovalAgent` con NLU seguro (approve, revise, reject, clarify) + loop de revisión V2 |
+| M11 | LinkedIn Posts API Publishing | M10 | Backend | **Done** | `LinkedInPublisher` validado solo ante versión aprobada + URN guardado |
+| M12 | E2E Demo Script & Polish | M1-M11 | QA / Demo | **Done** | Script `run_demo_pipeline.py` verificado contra Convex Cloud |
 
-| ID | Tarea | Dependencias | Estado |
-|---|---|---|---|
-| M1-01 | Endpoint GitHub `push` con firma `X-Hub-Signature-256` | M0 | **In progress** |
-| M1-02 | Idempotencia por `X-GitHub-Delivery` | M1-01, M0-04 | Backlog |
-| M1-03 | Persistencia de `githubEvent` y actividad | M1-02, M0-04 | Backlog |
-| M1-04 | Procesador fuera del request path | M1-03, M0-03 | Backlog |
 
 ## Plantilla de asignación
 
