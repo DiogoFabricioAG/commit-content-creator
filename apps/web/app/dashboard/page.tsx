@@ -49,11 +49,11 @@ export default function DashboardPage() {
               className="flex size-10 items-center justify-center rounded-xl bg-white text-black font-bold shadow-lg shadow-white/10 hover:bg-zinc-200 transition"
               title="Volver a Inicio"
             >
-              PoW
+              LAB
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold tracking-tight text-white">Proof of Work Dashboard</p>
+                <p className="text-sm font-semibold tracking-tight text-white">Laborin Dashboard</p>
                 <Link
                   href="/"
                   className="inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition"
@@ -184,7 +184,7 @@ export default function DashboardPage() {
 
         {/* Footer */}
         <footer className="flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <span>Proof of Work · Content Machine Dashboard</span>
+          <span>Laborin · Content Machine Dashboard</span>
           <span>LinkedIn + Kapso WhatsApp + Convex + FastAPI + Next.js</span>
         </footer>
       </div>

@@ -1,10 +1,10 @@
-# Proof of Work · Historia del proyecto
+# Laborin · Historia del proyecto
 
 Esta bitácora conserva la historia que luego se contará en la demo final. Cada entrada debe conectar una necesidad del producto con una decisión técnica, una evidencia comprobable y un momento visible para quien vea la presentación.
 
 ## Tesis para la demo
 
-Proof of Work convierte trabajo real de desarrollo en una historia publicable, sin obligar al desarrollador a detenerse para redactarla. La confianza del producto se demuestra en el recorrido completo:
+Laborin convierte trabajo real de desarrollo en una historia publicable, sin obligar al desarrollador a detenerse para redactarla. La confianza del producto se demuestra en el recorrido completo:
 
 ```text
 trabajo real → evidencia → historia explicable → borrador → aprobación humana → publicación
@@ -82,7 +82,7 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Evidencia:** la pantalla es responsive, tiene estados vacíos explícitos, foco visible en botones y no depende de datos simulados.
 
-**Momento de demo:** el juez entiende en segundos qué observa Proof of Work y en qué punto el humano conserva el control.
+**Momento de demo:** el juez entiende en segundos qué observa Laborin y en qué punto el humano conserva el control.
 
 **Siguiente paso:** conectar el estado real de Convex sin perder esta lectura clara del pipeline.
 
@@ -151,7 +151,7 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Evidencia:** el certificado TLS de Let’s Encrypt se obtuvo correctamente; Homepage responde `200`; `/health` responde `200` con `convex_configured=true`; el webhook responde `405 Allow: POST` ante GET, confirmando que alcanza FastAPI sin enviar un evento real.
 
-**Momento de demo:** ya podemos abrir Proof of Work desde una URL pública y conectar la GitHub App con un endpoint estable.
+**Momento de demo:** ya podemos abrir Laborin desde una URL pública y conectar la GitHub App con un endpoint estable.
 
 **Pendiente explícito:** `https://laborin.meowlab.tech/auth/github/callback` está reservado en el proxy, pero devuelve `404` hasta implementar OAuth GitHub con validación de `state` e intercambio seguro del código.
 
@@ -256,9 +256,9 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 **Momento de demo:** en menos de 30 segundos se entiende qué observa el producto, cómo crea una historia sustentada y por qué nada llega a LinkedIn sin un sí explícito.
 
 **Siguiente paso:** implementar M18-02 y M18-03 cuando estén disponibles los estados reales de onboarding, conexiones y confianza.
-### 2026-08-29 · Proof of Work adopta el lenguaje visual del evento
+### 2026-08-29 · Laborin adopta el lenguaje visual del evento
 
-**Qué cambió:** la landing y el dashboard ahora comparten una dirección retro-terminal inspirada en The Next Craft: crema sobre negro verdoso, retícula técnica, scanlines, comandos BASIC, marcos CRT y componentes rectangulares. El contenido, las marcas y los assets siguen siendo propios de Proof of Work.
+**Qué cambió:** la landing y el dashboard ahora comparten una dirección retro-terminal inspirada en The Next Craft: crema sobre negro verdoso, retícula técnica, scanlines, comandos BASIC, marcos CRT y componentes rectangulares. El contenido, las marcas y los assets siguen siendo propios de Laborin.
 
 **Decisión:** tomar el sistema visual como referencia, no copiar la página. La computadora, logotipos, tipografías propietarias y textos del evento no se reutilizan; el pipeline real de GitHub → Story AI → WhatsApp → LinkedIn ocupa el centro de la composición.
 

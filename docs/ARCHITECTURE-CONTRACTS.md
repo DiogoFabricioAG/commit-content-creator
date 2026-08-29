@@ -23,7 +23,7 @@ Next.js: visibilidad, configuración y fallback manual
 | `apps/web` | Mostrar actividad, configurar conexiones, consultar Convex | Guardar secretos, publicar en LinkedIn, procesar webhooks, llamar directamente a Kapso/OpenAI |
 | `apps/backend` | Validar payloads, verificar firmas, llamar APIs, ejecutar inteligencia, mutar Convex | Confiar en payloads sin validar, mantener estado crítico solo en memoria, publicar sin aprobación explícita |
 | `convex/` | Persistir dominio, imponer filtros por usuario, exponer queries/mutations/actions pequeñas | Guardar secretos en texto plano, acoplarse a HTTP externo, convertirse en un blob JSON sin índices |
-| Proveedores | Entregar eventos o ejecutar una acción autorizada | Ser la fuente de verdad del estado de Proof of Work |
+| Proveedores | Entregar eventos o ejecutar una acción autorizada | Ser la fuente de verdad del estado de Laborin |
 
 ## Primera rebanada vertical
 

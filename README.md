@@ -1,10 +1,10 @@
-# Proof of Work
+# Laborin
 
-Proof of Work transforma trabajo real de desarrollo en historias publicables para LinkedIn. El producto observa evidencia del repositorio, agrupa trabajo relacionado, genera un borrador y espera aprobación humana por WhatsApp antes de publicar.
+Laborin transforma trabajo real de desarrollo en historias publicables para LinkedIn. El producto observa evidencia del repositorio, agrupa trabajo relacionado, genera un borrador y espera aprobación humana por WhatsApp antes de publicar.
 
 ## Estado
 
-Milestones 0–12 — Pipeline Proof of Work implementado. Laborin está desplegado públicamente en `https://laborin.meowlab.tech/`.
+Milestones 0–12 — Pipeline de Laborin implementado. Laborin está desplegado públicamente en `https://laborin.meowlab.tech/`.
 
 El siguiente corte es M14–M19: onboarding configurable, identidad multiusuario, contenido rico, bot de WhatsApp humanizado y landing pública. El plan delegable está en [docs/ROADMAP-NEXT-PHASE.md](docs/ROADMAP-NEXT-PHASE.md).
 

@@ -35,7 +35,7 @@ body {
     radial-gradient(circle at 85% 70%, rgba(94, 80, 176, 0.12), transparent 30rem),
     var(--background);
   color: var(--foreground);
-  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -262,7 +262,7 @@ button {
   background: rgba(0, 0, 0, 0.16);
   padding: 0.28rem 0.55rem;
   color: var(--landing-subtle);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
   font-size: 0.62rem;
 }
 
@@ -503,7 +503,7 @@ button {
 
 body {
   background: #11130f;
-  font-family: "Courier New", Courier, ui-monospace, monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
 }
 
 ::selection {
@@ -518,7 +518,7 @@ body {
     radial-gradient(circle at 50% 8%, rgba(236, 232, 220, 0.045), transparent 34rem),
     #11130f;
   background-size: 52px 52px, 52px 52px, auto, auto;
-  font-family: "Courier New", Courier, ui-monospace, monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
 }
 
 .landing-shell::before,
@@ -578,9 +578,9 @@ body {
   box-shadow: 4px 4px 0 #4b4d46;
 }
 
-.landing-shell header [aria-label="Proof of Work"] > span:last-child,
-.landing-shell footer [aria-label="Proof of Work"] > span:last-child {
-  font-family: Georgia, "Times New Roman", serif;
+.landing-shell header [aria-label="Laborin"] > span:last-child,
+.landing-shell footer [aria-label="Laborin"] > span:last-child {
+  font-family: "Barlow Semi Condensed", sans-serif;
   font-style: italic;
   letter-spacing: -0.03em;
   text-transform: lowercase;
@@ -636,7 +636,7 @@ body {
 .landing-shell h1,
 .section-title,
 .cta-panel h2 {
-  font-family: "Arial Black", Impact, "Courier New", monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
   font-weight: 900;
   letter-spacing: -0.045em;
   text-transform: uppercase;
@@ -654,7 +654,7 @@ body {
   min-height: 3.1rem;
   border-radius: 0;
   padding-inline: 1.25rem;
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.075em;
@@ -807,7 +807,7 @@ body {
 }
 
 .section-copy {
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
   font-size: 0.95rem;
 }
 
@@ -828,7 +828,7 @@ body {
 }
 
 .step-card h3 {
-  font-family: "Arial Black", Impact, "Courier New", monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
   font-size: 1rem;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -849,7 +849,7 @@ body {
 
 .chat-bubble {
   border-radius: 0;
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
 }
 
 .chat-incoming {
@@ -937,7 +937,7 @@ body {
     #11130f !important;
   background-size: 44px 44px !important;
   color: #ece8dc;
-  font-family: "Courier New", Courier, ui-monospace, monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
 }
 
 .dashboard-shell > div {
@@ -979,7 +979,7 @@ body {
 .dashboard-shell h1,
 .dashboard-shell h2,
 .dashboard-shell h3 {
-  font-family: "Arial Black", Impact, "Courier New", monospace;
+  font-family: "Barlow Semi Condensed", ui-sans-serif, sans-serif;
   letter-spacing: 0;
   text-transform: uppercase;
 }

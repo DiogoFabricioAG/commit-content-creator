@@ -21,7 +21,7 @@ Usar `Blocked` cuando exista una dependencia externa o decisión material que no
 | M0-05 | Contratos y configuración | M0-01 | Tech Lead + Backend | **Done** | env.example, DTOs, contratos |
 | M0-06 | Quality gate y fixture local | M0-02, M0-03, M0-04, M0-05 | QA/DX | **Done** | `pnpm check` y smoke Convex reproducible |
 
-## Milestone 1 a 12 · Pipeline Completo (Proof of Work)
+## Milestone 1 a 12 · Pipeline completo de Laborin
 
 | ID | Milestone | Dependencias | Responsable | Estado | Entregable / Evidencia |
 |---|---|---|---|---|---|
