@@ -68,18 +68,20 @@ if ($updates.Count -eq 0) {
 
 Write-Host "`nVariables a actualizar en el VPS: $($updates.Keys -join ', ')" -ForegroundColor Cyan
 
-# Encode updates as JSON line payload
+# Encode updates as JSON base64
 $jsonPayload = $updates | ConvertTo-Json -Compress
+$jsonBase64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($jsonPayload))
 
 $remoteDirQuoted = "'" + $RemoteDir.Replace("'", "'\\''") + "'"
 $remoteCommand = @'
 set -euo pipefail
 
-IFS= read -r JSON_UPDATES
+JSON_UPDATES=$(printf '%s' '__JSON_BASE64__' | base64 -d)
 if [ -z "$JSON_UPDATES" ]; then
   echo "El payload de secretos recibido esta vacio." >&2
   exit 1
 fi
+export JSON_UPDATES
 
 remote_dir=__REMOTE_DIR__
 env_file="$remote_dir/deploy/.env.production"
@@ -97,7 +99,7 @@ import sys
 
 payload_str = os.environ.get("JSON_UPDATES", "{}")
 updates = json.loads(payload_str)
-env_path = os.environ.get("ENV_FILE", "/opt/laborin/deploy/.env.production")
+env_path = "/opt/laborin/deploy/.env.production"
 
 lines = []
 existing_keys = set()
@@ -136,7 +138,7 @@ docker compose --env-file "$env_file" -f "$compose_file" ps backend
 curl -fsS https://laborin.meowlab.tech/health
 printf '\nBackend reiniciado exitosamente con los nuevos secretos.\n'
 '@
-$remoteCommand = $remoteCommand.Replace("__REMOTE_DIR__", $remoteDirQuoted)
+$remoteCommand = $remoteCommand.Replace("__REMOTE_DIR__", $remoteDirQuoted).Replace("__JSON_BASE64__", $jsonBase64)
 
 $scriptBytes = [System.Text.Encoding]::UTF8.GetBytes($remoteCommand)
 $base64Script = [System.Convert]::ToBase64String($scriptBytes)
@@ -150,11 +152,12 @@ $sshArgs = @(
 
 Write-Host "Enviando secretos de forma segura al VPS..." -ForegroundColor Cyan
 
-$jsonPayload | & ssh @sshArgs "echo $base64Script | base64 -d | bash"
+& ssh @sshArgs "echo $base64Script | base64 -d | bash"
 
 if ($LASTEXITCODE -ne 0) {
     throw "Fallo la actualizacion de secretos en el VPS (exit code $LASTEXITCODE)."
 }
 
 Write-Host "`nSecretos actualizados y servicio backend verificado en https://laborin.meowlab.tech/health" -ForegroundColor Green
+
 
