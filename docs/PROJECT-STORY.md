@@ -181,6 +181,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** decidir explícitamente el cambio a `DEMO_MODE=false` para validar Kapso/WhatsApp con credenciales reales y luego probar aprobación y publicación.
 
+### 2026-08-29 · Primer mensaje real: Laborin cruza el borde de Kapso
+
+**Qué cambió:** al pasar `DEMO_MODE=false`, el primer intento reveló en el tail que el cliente estaba llamando una ruta antigua de Kapso y recibía `404`. Corregimos el endpoint Meta de WhatsApp, la cabecera `X-API-Key` y el payload estándar de mensajes de texto.
+
+**Evidencia:** el commit de prueba `618f6` llegó firmado a `POST /webhooks/github` y respondió `202`. Convex registró una nueva solicitud de aprobación con un identificador real `wamid...`; dejó de aparecer el prefijo `kapso_sim_`. El backend quedó `healthy` y `/health` respondió `200` en `laborin.meowlab.tech`.
+
+**Decisión:** conservar la prueba de contrato de Kapso en `apps/backend/tests/test_kapso_client.py` para fijar URL, autenticación, versión de API y cuerpo enviado. La aceptación de la API confirma el envío al proveedor; la entrega al teléfono y la respuesta entrante todavía requieren validación manual.
+
+**Momento de demo:** por primera vez el borrador cruza el límite del modo simulado y queda listo para llegar a WhatsApp, manteniendo la aprobación humana como siguiente barrera.
+
+**Siguiente paso:** redeliver/probar un `POST` entrante de Kapso, responder "hazlo más corto" y verificar que la revisión V2 se guarda y se devuelve por WhatsApp.
+
 ## Hitos que debemos registrar
 
 
