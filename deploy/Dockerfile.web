@@ -10,6 +10,7 @@ COPY convex/package.json convex/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY apps/web apps/web
+COPY convex/convex/_generated convex/convex/_generated
 
 ARG NEXT_PUBLIC_CONVEX_URL=
 ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
