@@ -217,6 +217,16 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** implementar M20-01/M20-02 y la acción de digest en la landing antes de preparar el commit final.
 
+### 2026-08-29 · La historia también necesita una vista de arquitectura
+
+**Qué añadimos a la demo:** el digest podrá acompañar el texto con enlaces, imágenes, video y un diagrama de arquitectura generado a partir de la evidencia real del repositorio.
+
+**Decisión:** arquitectura será un asset versionado junto al draft, no una ilustración decorativa separada. Cada nodo, relación y claim deberá conservar su fuente; el sistema generará también alt text y un fallback textual para canales que no puedan mostrar la imagen.
+
+**Regla de confianza:** ningún secreto, URL interna, payload personal o componente no observado puede llegar al diagrama. Si el render no se puede validar, la aprobación debe mostrar el problema y no publicar silenciosamente una versión incompleta.
+
+**Siguiente paso:** ejecutar M16-05 y coordinarlo con M20-08/M20-09 para que la Prueba 1 y el commit `final` revisen el paquete multimedia completo.
+
 ## Hitos que debemos registrar
 
 

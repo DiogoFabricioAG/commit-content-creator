@@ -164,6 +164,22 @@ Los trabajos de landing, copy y diseño visual pueden avanzar en paralelo con co
 
 **Aceptación:** un usuario entiende qué se propone, qué evidencia lo sustenta y qué puede responder sin leer un bloque confuso.
 
+#### [ ] M16-05 · Diagrama de arquitectura como asset — Prioridad 4 · Intelligence/Media
+
+**Objetivo:** acompañar una publicación con un diagrama visual de la arquitectura que se desprende del proyecto y de la historia compilada.
+
+**Contrato mínimo:** `diagramSource` (Mermaid u otra representación segura), `imageUrl`, `thumbnail`, `altText`, `nodes`, `edges`, `claims` y `evidenceRefs`. El diagrama debe poder renderizarse como SVG/PNG para publicación y conservar su fuente para revisión.
+
+**Tareas:**
+
+- Inferir componentes y relaciones únicamente desde archivos, dependencias, configuración y despliegues observados; nunca inventar servicios.
+- Generar una vista legible de alto nivel y una descripción alternativa accesible.
+- Redactar un fallback textual para WhatsApp y para plataformas que no acepten el asset junto al post.
+- Validar que el render no exponga secretos, tokens, URLs internas ni payloads personales.
+- Asociar el diagrama al mismo digest, versión de borrador y aprobación que el texto, imagen o video.
+
+**Aceptación:** un fixture del proyecto produce un diagrama revisable con nodos/aristas sustentados en evidencia; el dashboard muestra preview y fuentes; WhatsApp muestra el resumen; la publicación aprobada conserva el vínculo entre texto y asset; si falla el render, el post no se publica silenciosamente sin el fallback visible.
+
 ### Frente D · Bot de WhatsApp natural y accionable
 
 #### [ ] M17-01 · Botones/acciones de aprobación — Prioridad 4 · Integrations

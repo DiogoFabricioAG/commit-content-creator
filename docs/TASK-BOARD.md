@@ -96,7 +96,7 @@ El detalle delegable está en [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md).
 |---|---|---:|---|---|
 | M14 | Identidad, sesiones, OAuth y aislamiento multiusuario | **5** | **Backlog** | Decisión users vs workspaces |
 | M15 | Onboarding y preferencias de estilo/formato | **5** | **Backlog** | M14-01, M14-02 |
-| M16 | Texto, enlaces, imágenes, videos y publisher rico | **4** | **Backlog** | M15-01; permisos externos |
+| M16 | Texto, enlaces, imágenes, videos, diagramas de arquitectura y publisher rico | **4** | **Backlog** | M15-01; permisos externos |
 | M17 | Bot WhatsApp natural, GPT, botones y memoria acotada | **4** | **Backlog** | M14-01, M15-01 |
 | M18 | Landing, confianza y polish responsive | **3** | **Backlog** | Puede avanzar con mocks |
 | M19 | Observabilidad, E2E multiusuario y demo final | **4** | **Backlog** | M14–M18 |
@@ -109,6 +109,7 @@ El detalle delegable está en [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md).
 - **M14-02**: sesión y OAuth de GitHub.
 - **M15-01**: contrato de preferencias editoriales.
 - **M16-01**: contratos de contenido rico.
+- **M16-05**: generador de diagramas de arquitectura con evidencia y fallback textual.
 - **M17-02**: router conversacional GPT en sandbox.
 - **M18-01**: landing con contratos mock.
 
