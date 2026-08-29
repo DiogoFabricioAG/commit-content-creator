@@ -71,7 +71,7 @@ Write-Host "`nVariables a actualizar en el VPS: $($updates.Keys -join ', ')" -Fo
 # Encode updates as JSON line payload
 $jsonPayload = $updates | ConvertTo-Json -Compress
 
-$remoteDirQuoted = '"' + $RemoteDir + '"'
+$remoteDirQuoted = "'" + $RemoteDir.Replace("'", "'\\''") + "'"
 $remoteCommand = @'
 set -euo pipefail
 
@@ -90,7 +90,7 @@ if [ ! -f "$env_file" ]; then
   exit 1
 fi
 
-ENV_FILE="$env_file" JSON_UPDATES="$JSON_UPDATES" python3 - << 'PYEOF'
+python3 - << 'PYEOF'
 import json
 import os
 import sys
@@ -131,13 +131,15 @@ os.replace(tmp_path, env_path)
 print(f"Actualizadas {len(updates)} variables en {env_path}")
 PYEOF
 
-
 docker compose --env-file "$env_file" -f "$compose_file" up -d --no-deps --force-recreate backend
 docker compose --env-file "$env_file" -f "$compose_file" ps backend
 curl -fsS https://laborin.meowlab.tech/health
 printf '\nBackend reiniciado exitosamente con los nuevos secretos.\n'
 '@
 $remoteCommand = $remoteCommand.Replace("__REMOTE_DIR__", $remoteDirQuoted)
+
+$scriptBytes = [System.Text.Encoding]::UTF8.GetBytes($remoteCommand)
+$base64Script = [System.Convert]::ToBase64String($scriptBytes)
 
 $sshArgs = @(
     "-o", "IdentitiesOnly=yes",
@@ -148,11 +150,11 @@ $sshArgs = @(
 
 Write-Host "Enviando secretos de forma segura al VPS..." -ForegroundColor Cyan
 
-$jsonPayload | & ssh @sshArgs $remoteCommand
+$jsonPayload | & ssh @sshArgs "echo $base64Script | base64 -d | bash"
 
 if ($LASTEXITCODE -ne 0) {
     throw "Fallo la actualizacion de secretos en el VPS (exit code $LASTEXITCODE)."
 }
 
-
 Write-Host "`nSecretos actualizados y servicio backend verificado en https://laborin.meowlab.tech/health" -ForegroundColor Green
+
