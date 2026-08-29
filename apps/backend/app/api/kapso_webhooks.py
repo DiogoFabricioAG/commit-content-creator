@@ -293,6 +293,49 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         if isinstance(raw_title, str) and raw_title.strip():
             latest_title = raw_title.strip()
 
+    original_version_num = version_num
+    latest_title, draft_body, version_num = _regenerate_legacy_draft(
+        convex=convex,
+        content_gen=content_gen,
+        story_detector=story_detector,
+        commit_analyzer=commit_analyzer,
+        pending=pending,
+        title=latest_title,
+        body=str(draft_body or ""),
+        version_num=version_num,
+    )
+    if version_num != original_version_num:
+        # The user may have replied to the old draft. Do not interpret that
+        # reply as approval for content they have not seen yet.
+        outbound = kapso_client.send_draft_for_approval(
+            to_phone=inbound.from_phone,
+            story_title=latest_title,
+            post_body=draft_body,
+            version=version_num,
+        )
+        if outbound.message_id:
+            convex.set_approval_outbound_message_id(
+                approval_request_id=req_id,
+                kapso_message_id=outbound.message_id,
+            )
+            convex.record_approval_message(
+                approval_request_id=req_id,
+                direction="outbound",
+                message_id=outbound.message_id,
+                content=outbound.body,
+            )
+        convex.record_activity(
+            user_id=user_id,
+            type_="approval.whatsapp.sent",
+            label=f"Sent regenerated draft V{version_num} to WhatsApp",
+            status="completed",
+            metadata={
+                "approvalRequestId": req_id,
+                "trigger": "legacy_draft_recovery",
+            },
+        )
+        return
+
     # Explicit media command. This remains inside the user-initiated 24-hour
     # window and attaches the generated asset to the current post version.
     if _requests_image_generation(inbound.body):
