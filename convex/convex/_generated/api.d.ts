@@ -17,6 +17,7 @@ import type * as githubEvents from "../githubEvents.js";
 import type * as media from "../media.js";
 import type * as postVersions from "../postVersions.js";
 import type * as posts from "../posts.js";
+import type * as preferences from "../preferences.js";
 import type * as repositories from "../repositories.js";
 import type * as socialAccounts from "../socialAccounts.js";
 import type * as stories from "../stories.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   media: typeof media;
   postVersions: typeof postVersions;
   posts: typeof posts;
+  preferences: typeof preferences;
   repositories: typeof repositories;
   socialAccounts: typeof socialAccounts;
   stories: typeof stories;

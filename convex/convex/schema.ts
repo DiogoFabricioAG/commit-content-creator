@@ -254,4 +254,38 @@ export default defineSchema({
     metadata: v.optional(v.any()),
     timestamp: v.number(),
   }).index("by_user_timestamp", ["userId", "timestamp"]),
+
+  userPreferences: defineTable({
+    userId: v.id("users"),
+    roleTitle: v.optional(v.string()),
+    language: v.union(v.literal("es"), v.literal("en"), v.literal("pt")),
+    tone: v.union(
+      v.literal("humble_builder"),
+      v.literal("deep_technical"),
+      v.literal("direct_minimal"),
+      v.literal("storyteller"),
+    ),
+    targetAudience: v.union(
+      v.literal("senior_engineers"),
+      v.literal("tech_founders"),
+      v.literal("recruiters"),
+      v.literal("general_tech"),
+    ),
+    technicalLevel: v.union(v.literal("high"), v.literal("medium"), v.literal("accessible")),
+    postLength: v.union(v.literal("concise"), v.literal("standard"), v.literal("deep_dive")),
+    avoidWords: v.array(v.string()),
+    preferredCTA: v.union(
+      v.literal("discussion_question"),
+      v.literal("github_link"),
+      v.literal("lesson_takeaway"),
+      v.literal("none"),
+    ),
+    hashtags: v.array(v.string()),
+    allowedFormats: v.array(v.string()),
+    autoPublish: v.boolean(),
+    onboardingCompleted: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });
+
