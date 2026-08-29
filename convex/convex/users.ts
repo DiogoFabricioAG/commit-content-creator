@@ -45,3 +45,25 @@ export const getById = query({
     return await ctx.db.get(args.userId);
   },
 });
+
+export const updateProfile = mutation({
+  args: {
+    userId: v.id("users"),
+    displayName: v.optional(v.string()),
+    email: v.optional(v.string()),
+    whatsappPhone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    const now = Date.now();
+    await ctx.db.patch(args.userId, {
+      displayName: args.displayName ?? user.displayName,
+      email: args.email ?? user.email,
+      whatsappPhone: args.whatsappPhone ?? user.whatsappPhone,
+      updatedAt: now,
+    });
+    return args.userId;
+  },
+});
+
