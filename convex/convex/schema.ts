@@ -228,6 +228,17 @@ export default defineSchema({
     .index("by_phone_status", ["recipientPhone", "status"])
     .index("by_post", ["postId"]),
 
+  whatsappSessions: defineTable({
+    userId: v.id("users"),
+    phone: v.string(),
+    openedAt: v.number(),
+    lastInboundAt: v.number(),
+    lastInboundMessageId: v.string(),
+    expiresAt: v.number(),
+  })
+    .index("by_phone", ["phone"])
+    .index("by_user", ["userId"]),
+
   approvalMessages: defineTable({
     approvalRequestId: v.id("approvalRequests"),
     direction: v.union(v.literal("inbound"), v.literal("outbound")),
@@ -288,4 +299,3 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 });
-

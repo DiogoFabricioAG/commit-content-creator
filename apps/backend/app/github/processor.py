@@ -202,17 +202,49 @@ class GitHubEventProcessor:
                 status="pending",
             )
 
-            self.convex.record_activity(
-                user_id=user_id,
-                type_="approval.whatsapp.queued",
-                label=(
-                    f"Draft V1 queued for WhatsApp ({phone}); "
-                    "waiting for an inbound message to open the 24h window"
-                ),
-                status="started",
-                repository_id=repo_id,
-                metadata={"approvalRequestId": approval_req_id},
-            )
+            if self.convex.is_whatsapp_window_open(phone):
+                outbound = self.kapso_client.send_draft_for_approval(
+                    to_phone=phone,
+                    story_title=draft_result.title,
+                    post_body=draft_result.body,
+                    version=1,
+                )
+                if outbound.message_id:
+                    self.convex.set_approval_outbound_message_id(
+                        approval_request_id=approval_req_id,
+                        kapso_message_id=outbound.message_id,
+                    )
+                    self.convex.record_approval_message(
+                        approval_request_id=approval_req_id,
+                        direction="outbound",
+                        message_id=outbound.message_id,
+                        content=outbound.body,
+                    )
+                self.convex.record_activity(
+                    user_id=user_id,
+                    type_="approval.whatsapp.sent",
+                    label=(
+                        f"Draft V1 sent to WhatsApp ({phone}) inside the active 24h window"
+                    ),
+                    status="completed",
+                    repository_id=repo_id,
+                    metadata={
+                        "approvalRequestId": approval_req_id,
+                        "trigger": "github_push_active_window",
+                    },
+                )
+            else:
+                self.convex.record_activity(
+                    user_id=user_id,
+                    type_="approval.whatsapp.queued",
+                    label=(
+                        f"Draft V1 queued for WhatsApp ({phone}); "
+                        "waiting for an inbound message to open the 24h window"
+                    ),
+                    status="started",
+                    repository_id=repo_id,
+                    metadata={"approvalRequestId": approval_req_id},
+                )
 
             return {
                 "status": "processed",

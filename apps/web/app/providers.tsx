@@ -3,6 +3,8 @@
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { useMemo, type ReactNode } from "react";
 
+import { AuthProvider } from "../contexts/auth-context";
+
 type ProvidersProps = {
   children: ReactNode;
 };
@@ -22,5 +24,10 @@ export function Providers({ children }: ProvidersProps) {
     }
   }, []);
 
-  return <ConvexProvider client={client}>{children}</ConvexProvider>;
+  return (
+    <ConvexProvider client={client}>
+      <AuthProvider>{children}</AuthProvider>
+    </ConvexProvider>
+  );
 }
+

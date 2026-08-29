@@ -1,3 +1,4 @@
+import time
 from typing import Any, cast
 
 import httpx
@@ -411,6 +412,43 @@ class ConvexGateway:
             {"recipientPhone": recipient_phone},
         )
         return cast(dict[str, Any] | None, result)
+
+    def list_pending_approvals_for_phone(self, recipient_phone: str) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "approvalRequests:listPendingForPhone",
+            {"recipientPhone": recipient_phone},
+        )
+        return cast(list[dict[str, Any]], result or [])
+
+    def open_whatsapp_window(
+        self,
+        *,
+        user_id: str,
+        recipient_phone: str,
+        inbound_message_id: str,
+    ) -> str:
+        result = self.client.mutation(
+            "whatsappSessions:open",
+            {
+                "userId": user_id,
+                "phone": recipient_phone,
+                "inboundMessageId": inbound_message_id,
+            },
+        )
+        return cast(str, result)
+
+    def is_whatsapp_window_open(self, recipient_phone: str) -> bool:
+        result = self.client.query(
+            "whatsappSessions:getForPhone",
+            {"phone": recipient_phone},
+        )
+        if not result:
+            return False
+        session = cast(dict[str, Any], result)
+        try:
+            return int(session.get("expiresAt", 0)) > int(time.time() * 1000)
+        except (TypeError, ValueError):
+            return False
 
     def update_approval_request(
         self,

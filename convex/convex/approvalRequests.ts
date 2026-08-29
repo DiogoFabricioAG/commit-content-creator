@@ -46,6 +46,19 @@ export const getPendingForPhone = query({
   },
 });
 
+export const listPendingForPhone = query({
+  args: { recipientPhone: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("approvalRequests")
+      .withIndex("by_phone_status", (q) =>
+        q.eq("recipientPhone", args.recipientPhone).eq("status", "pending"),
+      )
+      .order("asc")
+      .collect();
+  },
+});
+
 export const getById = query({
   args: { approvalRequestId: v.id("approvalRequests") },
   handler: async (ctx, args) => {
