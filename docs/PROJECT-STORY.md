@@ -50,6 +50,30 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** cerrar el modelo Convex inicial y conectar el estado persistente al primer vertical slice.
 
+### 2026-08-29 · Backend de salud y configuración segura
+
+**Qué cambió:** FastAPI ya tiene un arranque mínimo, configuración por entorno, CORS explícito y un endpoint de salud.
+
+**Decisión:** las credenciales de proveedores no son requisito para validar el runtime. Convex se expone mediante un gateway que se configura de forma perezosa cuando existe la variable CONVEX_URL.
+
+**Evidencia:** Ruff, Pyright y pytest pasan; el test confirma que el endpoint de salud funciona sin secretos de GitHub, OpenAI, Kapso o LinkedIn.
+
+**Momento de demo:** mostrar que el backend está vivo y preparado antes de conectar servicios externos.
+
+**Siguiente paso:** usar el cliente Python de Convex en el procesamiento de eventos.
+
+### 2026-08-29 · Primer contrato persistente en Convex
+
+**Qué cambió:** el esquema inicial modela usuarios, instalaciones y repositorios de GitHub, eventos idempotentes, commits y actividad.
+
+**Decisión:** deliveryId identifica una entrega de GitHub y repositoryId + sha identifica lógicamente un commit. Los índices dejan preparada la reanudación segura después de reinicios.
+
+**Evidencia:** el schema pasa typecheck con Convex 1.45.0 y el fixture conserva la historia de tres commits relacionados sin depender de red.
+
+**Momento de demo previsto:** un push podrá alimentar el pipeline sin crear duplicados y la actividad podrá reflejarse en el dashboard.
+
+**Siguiente paso:** añadir queries/mutations Convex y el webhook GitHub de M1.
+
 ## Hitos que debemos registrar
 
 | Hito | Evidencia técnica | Momento narrativo |

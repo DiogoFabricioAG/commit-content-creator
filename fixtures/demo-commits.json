@@ -1,0 +1,33 @@
+{
+  "name": "notification-websocket-story",
+  "description": "Fixture segura para probar agrupación de trabajo relacionado.",
+  "commits": [
+    {
+      "sha": "fixture-001",
+      "message": "feat: add notification polling",
+      "files": ["src/notifications/poller.ts"],
+      "additions": 42,
+      "deletions": 0
+    },
+    {
+      "sha": "fixture-002",
+      "message": "fix: prevent duplicate notification requests",
+      "files": ["src/notifications/poller.ts", "src/notifications/poller.test.ts"],
+      "additions": 18,
+      "deletions": 5
+    },
+    {
+      "sha": "fixture-003",
+      "message": "refactor: replace polling with websocket events",
+      "files": ["src/notifications/socket.ts", "src/notifications/poller.ts"],
+      "additions": 76,
+      "deletions": 61
+    }
+  ],
+  "expected": {
+    "storyClusters": 1,
+    "stories": 1,
+    "postDrafts": 1,
+    "approvalRequests": 1
+  }
+}
