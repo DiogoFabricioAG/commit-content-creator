@@ -39,7 +39,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <main className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
+    <main className="dashboard-shell min-h-screen bg-black text-white selection:bg-white selection:text-black">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 lg:px-10">
         {/* Header */}
         <header className="flex items-center justify-between border-b border-white/10 pb-6">

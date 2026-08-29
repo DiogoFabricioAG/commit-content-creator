@@ -67,6 +67,12 @@ export default function Home() {
       <div className="landing-glow landing-glow-one" />
       <div className="landing-glow landing-glow-two" />
 
+      <div className="system-strip" aria-hidden="true">
+        <span>**** PROOF OF WORK BASIC V1 ****</span>
+        <span>64K STORY MEMORY · 38911 CLAIMS FREE</span>
+        <span>READY.</span>
+      </div>
+
       <header className="relative z-20 mx-auto flex w-full max-w-[1180px] items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
         <Link href="/" className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
           <BrandMark />
@@ -82,16 +88,17 @@ export default function Home() {
           href="/dashboard"
           className="group inline-flex h-10 items-center gap-2 rounded-full border border-[var(--landing-line)] bg-white/[0.055] px-4 text-sm font-medium transition hover:border-white/25 hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
-          Ver dashboard
+          RUN dashboard
           <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </header>
 
       <section className="relative z-10 mx-auto grid min-h-[720px] w-full max-w-[1180px] items-center gap-14 px-5 pb-20 pt-16 sm:px-8 lg:grid-cols-[1.02fr_0.98fr] lg:px-10 lg:pb-28 lg:pt-20">
         <div className="min-w-0">
+          <p className="basic-command">10 PRINT &quot;EVIDENCE BEFORE CONTENT&quot;</p>
           <div className="eyebrow">
             <span className="status-dot" />
-            Story intelligence para developers
+            READY. Story intelligence para developers
           </div>
 
           <h1 className="mt-7 max-w-3xl text-[clamp(3.25rem,7.2vw,6.7rem)] font-semibold leading-[0.91] tracking-[-0.072em] text-[var(--landing-text)]">
@@ -103,11 +110,11 @@ export default function Home() {
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link href="/dashboard" className="primary-cta group">
-              Explorar la demo
+              RUN explorar demo
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <a href="#como-funciona" className="secondary-cta">
-              Ver cómo funciona
+              GOTO cómo funciona
               <ChevronRight className="size-4" />
             </a>
           </div>
@@ -123,9 +130,9 @@ export default function Home() {
           <div className="product-window">
             <div className="window-bar">
               <div className="flex gap-1.5" aria-hidden="true">
-                <span className="window-dot bg-[#ff6f61]" />
-                <span className="window-dot bg-[#f7c554]" />
-                <span className="window-dot bg-[#70ca8a]" />
+                <span className="window-dot bg-[#e8e4d8]" />
+                <span className="window-dot bg-[#77786f]" />
+                <span className="window-dot bg-[#a6ff8f]" />
               </div>
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--landing-subtle)]">Pipeline activo</span>
               <span className="flex items-center gap-1.5 text-[10px] text-[var(--signal)]"><span className="status-dot" /> Live</span>
@@ -184,7 +191,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative z-10 border-y border-[var(--landing-line)] bg-white/[0.018]">
+      <section className="protocol-strip relative z-10 border-y border-[var(--landing-line)] bg-white/[0.018]">
         <div className="mx-auto flex w-full max-w-[1180px] flex-col items-center justify-between gap-5 px-5 py-6 sm:px-8 md:flex-row lg:px-10">
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--landing-subtle)]">Del trabajo a la publicación, en un solo flujo</p>
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm font-medium text-[var(--landing-muted)]">
@@ -206,7 +213,7 @@ export default function Home() {
           <p className="section-copy mt-5">Proof of Work observa señales verificables, encuentra una narrativa coherente y te deja la última palabra.</p>
         </div>
 
-        <div className="mt-14 grid gap-px overflow-hidden rounded-[28px] border border-[var(--landing-line)] bg-[var(--landing-line)] md:grid-cols-2 lg:grid-cols-4">
+        <div className="step-grid mt-14 grid gap-px overflow-hidden rounded-[28px] border border-[var(--landing-line)] bg-[var(--landing-line)] md:grid-cols-2 lg:grid-cols-4">
           {steps.map((step) => {
             const Icon = step.icon;
             return (
@@ -291,12 +298,12 @@ export default function Home() {
           <div className="cta-grid" aria-hidden="true" />
           <div className="relative z-10 max-w-2xl">
             <div className="eyebrow border-white/10 bg-black/10 text-white/65">
-              <MousePointerClick className="size-3.5 text-[var(--signal)]" /> Demo privada disponible
+              <MousePointerClick className="size-3.5 text-[var(--signal)]" /> RUN &quot;DEMO PRIVADA&quot;
             </div>
             <h2 className="mt-6 text-4xl font-semibold leading-[1.02] tracking-[-0.055em] sm:text-6xl">Haz visible el trabajo que ya estás haciendo.</h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-white/65">Explora el recorrido actual de texto para LinkedIn, con evidencia técnica y aprobación por WhatsApp.</p>
             <Link href="/dashboard" className="primary-cta mt-8 bg-white text-[#11141b] hover:bg-white/90">
-              Abrir dashboard <ArrowRight className="size-4" />
+              RUN dashboard <ArrowRight className="size-4" />
             </Link>
           </div>
         </div>
@@ -305,8 +312,8 @@ export default function Home() {
       <footer className="relative z-10 border-t border-[var(--landing-line)]">
         <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-5 px-5 py-8 text-xs text-[var(--landing-subtle)] sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
           <BrandMark />
-          <p>De evidencia real a contenido que sí suena a ti.</p>
-          <p>© 2026 Proof of Work</p>
+          <p>READY. De evidencia real a contenido que sí suena a ti.</p>
+          <p>© 2026 · 64K STORY SYSTEM</p>
         </div>
       </footer>
     </main>

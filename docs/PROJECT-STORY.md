@@ -256,6 +256,16 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 **Momento de demo:** en menos de 30 segundos se entiende qué observa el producto, cómo crea una historia sustentada y por qué nada llega a LinkedIn sin un sí explícito.
 
 **Siguiente paso:** implementar M18-02 y M18-03 cuando estén disponibles los estados reales de onboarding, conexiones y confianza.
+### 2026-08-29 · Proof of Work adopta el lenguaje visual del evento
+
+**Qué cambió:** la landing y el dashboard ahora comparten una dirección retro-terminal inspirada en The Next Craft: crema sobre negro verdoso, retícula técnica, scanlines, comandos BASIC, marcos CRT y componentes rectangulares. El contenido, las marcas y los assets siguen siendo propios de Proof of Work.
+
+**Decisión:** tomar el sistema visual como referencia, no copiar la página. La computadora, logotipos, tipografías propietarias y textos del evento no se reutilizan; el pipeline real de GitHub → Story AI → WhatsApp → LinkedIn ocupa el centro de la composición.
+
+**Evidencia:** la landing y `/dashboard` se revisaron visualmente en escritorio y en un viewport móvil de 390 × 844 px sin desborde horizontal. Lint, TypeScript, build de producción y typecheck de Convex pasan.
+
+**Momento de demo:** el proyecto se siente parte del universo del hackathon desde el primer vistazo, pero conserva una identidad funcional propia y comunica el recorrido del producto en segundos.
+
 ## Hitos que debemos registrar
 
 
