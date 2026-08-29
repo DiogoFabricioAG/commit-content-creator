@@ -229,11 +229,21 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 ### 2026-08-29 · WhatsApp empieza por el usuario
 
-**Cambio real:** GitHub ya no dispara un mensaje saliente de aprobación. El borrador queda en cola y el primer mensaje del usuario abre la conversación; recién entonces Laborin entrega la imagen, el borrador y los botones de Kapso.
+**Cambio real:** GitHub ya no dispara un mensaje saliente de aprobación. El borrador queda en cola y el primer mensaje del usuario abre la conversación; recién entonces Laborin entrega el texto y los botones de Kapso. La imagen queda bajo demanda.
 
 **Decisión:** mantener el control humano y evitar mensajes proactivos fuera de la ventana de conversación. Los botones `Revisar`, `Publicar` y `Descartar` producen acciones deterministas; el lenguaje natural queda como fallback.
 
-**Evidencia:** el backend, los contratos de Kapso, el parser de respuestas interactivas, Convex Storage y el upload de imágenes a LinkedIn pasan las pruebas automatizadas y están desplegados en producción.
+**Evidencia:** el backend, los contratos de Kapso, el parser de respuestas interactivas, Convex Storage y el upload de imágenes a LinkedIn pasan las pruebas automatizadas; el flujo de imagen está reservado para una orden explícita dentro de la ventana activa.
+
+### 2026-08-29 · WhatsApp responde primero con texto
+
+**Qué descubrimos:** el webhook entrante sí llegaba a FastAPI, pero la primera respuesta intentaba generar/subir una imagen y después enviaba un cuerpo demasiado grande como mensaje interactivo. Convex no tenía la función de media en el deployment usado por el VPS y Kapso devolvía `400`, dejando la conversación sin respuesta visible.
+
+**Decisión:** la primera entrega solo envía el borrador como texto y un menú compacto. La generación de imagen se activa únicamente con un comando explícito del usuario; si Kapso rechaza los botones, el backend entrega instrucciones equivalentes en texto y conserva el flujo operativo.
+
+**Evidencia:** `pnpm check` pasa con el caso explícito de generación de imagen; el tail de producción identificó el `POST /webhooks/kapso` aceptado y el error posterior de proveedor.
+
+**Momento de demo:** el usuario recibe el borrador sin esperar una imagen y decide cuándo agregarla, evitando gasto y fallos silenciosos.
 
 ## Hitos que debemos registrar
 

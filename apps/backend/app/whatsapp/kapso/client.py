@@ -1,8 +1,11 @@
+import logging
 from typing import Any
 
 import httpx
 from app.config import Settings
 from app.schemas.kapso import KapsoOutboundMessage
+
+logger = logging.getLogger(__name__)
 
 
 class KapsoClient:
@@ -42,7 +45,15 @@ class KapsoClient:
                 headers=headers,
                 json=payload,
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError:
+                logger.exception(
+                    "Kapso text message failed: status=%s body=%s",
+                    response.status_code,
+                    response.text[:1000],
+                )
+                raise
             data = response.json()
             messages = data.get("messages", [])
             message_id = messages[0].get("id") if messages else data.get("id")
@@ -94,7 +105,6 @@ class KapsoClient:
         }
         payload: dict[str, Any] = {
             "messaging_product": "whatsapp",
-            "recipient_type": "individual",
             "to": to_phone,
             "type": "interactive",
             "interactive": {
@@ -110,7 +120,15 @@ class KapsoClient:
                 headers=headers,
                 json=payload,
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError:
+                logger.exception(
+                    "Kapso interactive message failed: status=%s body=%s",
+                    response.status_code,
+                    response.text[:1000],
+                )
+                raise
             data = response.json()
             messages = data.get("messages", [])
             message_id = messages[0].get("id") if messages else data.get("id")
@@ -161,7 +179,15 @@ class KapsoClient:
                 headers=headers,
                 json=payload,
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError:
+                logger.exception(
+                    "Kapso image message failed: status=%s body=%s",
+                    response.status_code,
+                    response.text[:1000],
+                )
+                raise
             data = response.json()
             messages = data.get("messages", [])
             message_id = messages[0].get("id") if messages else data.get("id")
@@ -191,15 +217,29 @@ class KapsoClient:
                 image_url,
                 "🖼️ Imagen propuesta para acompañar la publicación.",
             )
-        return self.send_interactive_buttons(
-            to_phone,
-            full_message,
-            [
-                {"id": "approval_review", "title": "Revisar"},
-                {"id": "approval_publish", "title": "Publicar"},
-                {"id": "approval_reject", "title": "Descartar"},
-            ],
-        )
+        # Keep the draft in a regular text message. WhatsApp interactive body
+        # text has a tighter limit, and Kapso may reject a long generated post.
+        self.send_message(to_phone, full_message)
+        try:
+            return self.send_interactive_buttons(
+                to_phone,
+                f"¿Qué hacemos con el borrador V{version}?",
+                [
+                    {"id": "approval_review", "title": "Revisar"},
+                    {"id": "approval_publish", "title": "Publicar"},
+                    {"id": "approval_reject", "title": "Descartar"},
+                ],
+            )
+        except httpx.HTTPStatusError:
+            # A text fallback keeps the approval flow usable if Kapso/Meta
+            # temporarily rejects an interactive payload.
+            logger.warning(
+                "Falling back to text approval instructions for %s", to_phone
+            )
+            return self.send_message(
+                to_phone,
+                "Puedes responder con: Publicar, Revisar o Descartar.",
+            )
 
     def send_published_confirmation(
         self,

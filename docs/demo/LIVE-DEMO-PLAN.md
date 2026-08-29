@@ -16,8 +16,9 @@ Este runbook define las dos pruebas que deben quedar listas antes de la presenta
 
 - El push de GitHub deja una aprobación pendiente, pero no envía WhatsApp.
 - Un mensaje entrante del usuario activa la entrega del borrador dentro de la ventana de conversación.
-- Si `image` está activo, se genera y guarda un asset con OpenAI y Convex Storage antes de enviar la revisión.
-- Kapso entrega la imagen y luego una tarjeta interactiva con `Revisar`, `Publicar` y `Descartar`.
+- La primera entrega es texto y no genera imágenes automáticamente, aunque el formato `image` esté configurado.
+- Después, un mensaje explícito como `genera una imagen y adjúntala` crea el asset con OpenAI y Convex Storage y lo reenvía junto al borrador.
+- Kapso entrega el texto y una tarjeta interactiva con `Revisar`, `Publicar` y `Descartar`; si el proveedor rechaza los botones, queda un fallback textual.
 
 ## Prueba 1 · Digest histórico desde la landing
 

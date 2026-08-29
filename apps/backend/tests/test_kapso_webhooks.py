@@ -4,10 +4,24 @@ import hmac
 import pytest
 from app.whatsapp.kapso.webhooks import (
     InvalidKapsoSignature,
+    _requests_image_generation,
     parse_kapso_inbound_message,
     parse_kapso_inbound_messages,
     verify_kapso_signature,
 )
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("genera una imagen y adjúntala al borrador", True),
+        ("crea una imagen para este post", True),
+        ("hazlo más corto", False),
+        ("quiero publicar", False),
+    ],
+)
+def test_image_generation_is_explicit(message: str, expected: bool) -> None:
+    assert _requests_image_generation(message) is expected
 
 
 def test_verify_kapso_signature() -> None:

@@ -1,5 +1,6 @@
 import json
 import logging
+import unicodedata
 from typing import Any, cast
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
@@ -26,6 +27,23 @@ from app.whatsapp.kapso.webhooks import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks/kapso", tags=["kapso"])
+
+
+def _requests_image_generation(message: str) -> bool:
+    normalized = "".join(
+        character
+        for character in unicodedata.normalize("NFKD", message.lower())
+        if not unicodedata.combining(character)
+    )
+    return any(
+        phrase in normalized
+        for phrase in (
+            "genera una imagen",
+            "genera imagen",
+            "crea una imagen",
+            "haz una imagen",
+        )
+    )
 
 
 def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
@@ -56,73 +74,22 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     latest_version = convex.client.query("postVersions:getLatestForPost", {"postId": post_id})
     draft_body = latest_version.get("body") if latest_version else ""
     version_num = int(latest_version.get("version", 1)) if latest_version else 1
+    latest_title = "Historia técnica"
+    if latest_version:
+        raw_title = latest_version.get("title")
+        if isinstance(raw_title, str) and raw_title.strip():
+            latest_title = raw_title.strip()
 
     # The GitHub push queues the approval but does not send a business-initiated
     # message. The first inbound message opens the WhatsApp 24-hour window.
     if not pending.get("kapsoOutboundMessageId"):
-        latest_title = "Historia técnica"
-        if latest_version:
-            raw_title = latest_version.get("title")
-            if isinstance(raw_title, str) and raw_title.strip():
-                latest_title = raw_title.strip()
-        image_url: str | None = None
-        if "image" in {
-            item.strip().lower()
-            for item in settings.default_content_formats.split(",")
-            if item.strip()
-        }:
-            story_id = str(post.get("storyId")) if post else ""
-            story_data = (
-                cast(
-                    dict[str, Any] | None,
-                    convex.client.query("stories:getById", {"storyId": story_id}),
-                )
-                if story_id
-                else None
-            )
-            story_summary = draft_body[:500]
-            if story_data:
-                raw_summary = story_data.get("summary")
-                if isinstance(raw_summary, str) and raw_summary.strip():
-                    story_summary = raw_summary.strip()
-            try:
-                generated_image = image_generator.generate_for_story(
-                    story_title=latest_title,
-                    story_summary=story_summary,
-                    post_body=draft_body,
-                )
-                stored_media = convex.upload_media(
-                    content=generated_image.data,
-                    mime_type=generated_image.mime_type,
-                )
-                convex.record_media_asset(
-                    post_version_id=current_version_id,
-                    kind="image",
-                    storage_id=stored_media["storageId"],
-                    mime_type=generated_image.mime_type,
-                    url=stored_media["url"],
-                    alt_text=f"Ilustración sobre {latest_title}",
-                    source="openai",
-                    prompt=generated_image.prompt,
-                )
-                image_url = stored_media["url"]
-                convex.record_activity(
-                    user_id=user_id,
-                    type_="media.image.generated",
-                    label="Generated image asset for the approved draft",
-                    status="completed",
-                    metadata={"postVersionId": current_version_id},
-                )
-            except ImageGenerationUnavailable as error:
-                logger.warning("Image generation unavailable: %s", error)
-            except Exception:
-                logger.exception("Image generation or storage failed")
+        # The first inbound message only starts the free-form WhatsApp window.
+        # Image generation is opt-in and happens only after the user asks for it.
         outbound = kapso_client.send_draft_for_approval(
             to_phone=inbound.from_phone,
             story_title=latest_title,
             post_body=draft_body,
             version=version_num,
-            image_url=image_url,
         )
         if outbound.message_id:
             convex.set_approval_outbound_message_id(
@@ -152,6 +119,91 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
             status="completed",
             metadata={"approvalRequestId": req_id, "trigger": "inbound_user_message"},
         )
+        return
+
+    # Explicit media command. This remains inside the user-initiated 24-hour
+    # window and attaches the generated asset to the current post version.
+    if _requests_image_generation(inbound.body):
+        convex.record_approval_message(
+            approval_request_id=req_id,
+            direction="inbound",
+            message_id=inbound.message_id,
+            content=inbound.body,
+            interpreted_intent="generate_image",
+            confidence=1.0,
+        )
+        try:
+            story_id = str(post.get("storyId")) if post else ""
+            story_data = (
+                cast(
+                    dict[str, Any] | None,
+                    convex.client.query("stories:getById", {"storyId": story_id}),
+                )
+                if story_id
+                else None
+            )
+            story_summary = draft_body[:500]
+            if story_data:
+                raw_summary = story_data.get("summary")
+                if isinstance(raw_summary, str) and raw_summary.strip():
+                    story_summary = raw_summary.strip()
+            generated_image = image_generator.generate_for_story(
+                story_title=latest_title,
+                story_summary=story_summary,
+                post_body=draft_body,
+            )
+            stored_media = convex.upload_media(
+                content=generated_image.data,
+                mime_type=generated_image.mime_type,
+            )
+            convex.record_media_asset(
+                post_version_id=current_version_id,
+                kind="image",
+                storage_id=stored_media["storageId"],
+                mime_type=generated_image.mime_type,
+                url=stored_media["url"],
+                alt_text=f"Ilustración sobre {latest_title}",
+                source="openai",
+                prompt=generated_image.prompt,
+            )
+            outbound = kapso_client.send_draft_for_approval(
+                to_phone=inbound.from_phone,
+                story_title=latest_title,
+                post_body=draft_body,
+                version=version_num,
+                image_url=stored_media["url"],
+            )
+            if outbound.message_id:
+                convex.set_approval_outbound_message_id(
+                    approval_request_id=req_id,
+                    kapso_message_id=outbound.message_id,
+                )
+            convex.record_activity(
+                user_id=user_id,
+                type_="media.image.generated",
+                label="Generated image asset for the approved draft",
+                status="completed",
+                metadata={"postVersionId": current_version_id},
+            )
+            if outbound.message_id:
+                convex.record_approval_message(
+                    approval_request_id=req_id,
+                    direction="outbound",
+                    message_id=outbound.message_id,
+                    content=outbound.body,
+                )
+        except ImageGenerationUnavailable as error:
+            logger.warning("Image generation unavailable: %s", error)
+            kapso_client.send_message(
+                inbound.from_phone,
+                "No pude generar la imagen todavía. Revisa que la API de imágenes esté configurada e inténtalo de nuevo.",
+            )
+        except Exception:
+            logger.exception("Image generation or storage failed")
+            kapso_client.send_message(
+                inbound.from_phone,
+                "La imagen no se pudo adjuntar en este intento. El borrador sigue disponible; inténtalo de nuevo en unos segundos.",
+            )
         return
 
     # 2. Interpret intent
