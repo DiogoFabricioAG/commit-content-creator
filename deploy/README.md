@@ -29,6 +29,18 @@ El webhook ya corresponde a una ruta implementada. El callback OAuth queda reser
 
 Copiar `deploy/.env.production.example` a `deploy/.env.production` y completar `CONVEX_URL`, `NEXT_PUBLIC_CONVEX_URL` y `GITHUB_WEBHOOK_SECRET` fuera de Git. La URL de Convex no es un secreto, pero el secreto del webhook sí.
 
+Para actualizar únicamente el secreto en el VPS desde Windows, sin guardarlo en el repositorio ni mostrarlo en pantalla:
+
+```powershell
+.\deploy\set-webhook-secret.ps1
+```
+
+El script solicita el valor como entrada segura, actualiza `/opt/laborin/deploy/.env.production`, recrea solo `laborin-backend` y verifica `/health`. Si PowerShell bloquea la ejecución por la política local, usar:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\set-webhook-secret.ps1
+```
+
 ## Comandos de despliegue
 
 Desde `/opt/laborin` en el VPS:
