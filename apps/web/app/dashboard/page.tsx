@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { api } from "@convex/api";
 import { useAuth } from "../../contexts/auth-context";
+import { AccountsSettings } from "@/components/accounts-settings";
 import { LiveActivityStream } from "@/components/live-activity-stream";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { StoryDraftViewer } from "@/components/story-draft-viewer";
@@ -36,8 +37,13 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const { user, userId, isAuthenticated, isLoading, logout } = useAuth();
 
-  const [tabOverride, setTabOverride] = useState<"dashboard" | "onboarding" | null>(null);
-  const activeTab = tabOverride ?? (searchParams.get("tab") === "onboarding" ? "onboarding" : "dashboard");
+  const [tabOverride, setTabOverride] = useState<"dashboard" | "onboarding" | "channels" | null>(null);
+  
+  const paramTab = searchParams.get("tab");
+  const initialComputedTab: "dashboard" | "onboarding" | "channels" =
+    paramTab === "onboarding" ? "onboarding" : paramTab === "channels" || paramTab === "settings" ? "channels" : "dashboard";
+
+  const activeTab = tabOverride ?? initialComputedTab;
 
   // Auth Guard
   useEffect(() => {
@@ -48,6 +54,16 @@ function DashboardContent() {
 
   const prefs = useQuery(
     api.preferences.getForUser,
+    userId ? { userId } : "skip",
+  );
+
+  const linkedinAccount = useQuery(
+    api.socialAccounts.getByUserAndProvider,
+    userId ? { userId, provider: "linkedin" } : "skip",
+  );
+
+  const repositories = useQuery(
+    api.repositories.listForUser,
     userId ? { userId } : "skip",
   );
 
@@ -65,6 +81,8 @@ function DashboardContent() {
   if (!isAuthenticated || !userId) {
     return null;
   }
+
+  const allChannelsConfigured = !!user?.whatsappPhone && !!linkedinAccount && (repositories?.length ?? 0) > 0;
 
   return (
     <main className="dashboard-shell min-h-screen bg-black text-white selection:bg-white selection:text-black">
@@ -123,6 +141,7 @@ function DashboardContent() {
                 <LayoutDashboard className="size-3.5" />
                 Dashboard
               </button>
+
               <button
                 type="button"
                 onClick={() => setTabOverride("onboarding")}
@@ -133,8 +152,26 @@ function DashboardContent() {
                 }`}
               >
                 <Wand2 className="size-3.5" />
-                Voz & Onboarding
+                Voz & Estilo
                 {prefs?.onboardingCompleted ? (
+                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                ) : (
+                  <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTabOverride("channels")}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  activeTab === "channels"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <ShieldCheck className="size-3.5" />
+                Canales & Cuentas
+                {allChannelsConfigured ? (
                   <span className="size-1.5 rounded-full bg-emerald-400" />
                 ) : (
                   <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
@@ -162,12 +199,17 @@ function DashboardContent() {
         <section className="py-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-zinc-400">
             <Radio className="size-3.5 text-emerald-400 animate-pulse" />
-            Espacio de trabajo seguro y aislado · Human approval before publishing
+            Espacio de trabajo seguro y aislado · WhatsApp + GitHub + LinkedIn
           </div>
         </section>
 
-        {/* Tab View: ONBOARDING WIZARD */}
-        {activeTab === "onboarding" ? (
+        {/* Tab View: CHANNELS & ACCOUNTS SETTINGS */}
+        {activeTab === "channels" ? (
+          <section className="pb-16">
+            <AccountsSettings userId={userId} />
+          </section>
+        ) : activeTab === "onboarding" ? (
+          /* Tab View: ONBOARDING WIZARD */
           <section className="pb-16">
             <OnboardingWizard
               userId={userId}
@@ -239,7 +281,6 @@ function DashboardContent() {
           <span>LaborIN · Content Machine Multi-Tenant Dashboard</span>
           <span>LinkedIn + Kapso WhatsApp + Convex + FastAPI + Next.js</span>
         </footer>
-
       </div>
     </main>
   );

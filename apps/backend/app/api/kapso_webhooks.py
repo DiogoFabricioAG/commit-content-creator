@@ -264,6 +264,34 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         recipient_phone=inbound.from_phone,
         inbound_message_id=inbound.message_id,
     )
+
+    # Recover legacy drafts that were already sent before the format fix. They
+    # have an outbound message ID, so they would otherwise be skipped forever.
+    recovered_legacy = False
+    for delivered_request in pending_requests:
+        if not delivered_request.get("kapsoOutboundMessageId"):
+            continue
+        delivered_post_id = str(delivered_request.get("postId"))
+        delivered_version = convex.client.query(
+            "postVersions:getLatestForPost", {"postId": delivered_post_id}
+        )
+        if not delivered_version:
+            continue
+        delivered_title = str(delivered_version.get("title") or "Historia técnica")
+        delivered_body = str(delivered_version.get("body") or "")
+        if not ContentGenerator.is_legacy_draft(delivered_title, delivered_body):
+            continue
+        _deliver_queued_approval(
+            convex=convex,
+            kapso_client=kapso_client,
+            pending=delivered_request,
+            inbound=inbound,
+            content_gen=content_gen,
+            story_detector=story_detector,
+            commit_analyzer=commit_analyzer,
+        )
+        recovered_legacy = True
+
     queued_requests = [
         request
         for request in pending_requests
@@ -280,6 +308,8 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 story_detector=story_detector,
                 commit_analyzer=commit_analyzer,
             )
+        return
+    if recovered_legacy:
         return
 
     # Fetch post and latest version for decisions on the current approval.
