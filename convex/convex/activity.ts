@@ -15,13 +15,9 @@ export const record = mutation({
     type: v.string(),
     label: v.string(),
     status: activityStatus,
-    metadata: v.optional(
-      v.object({
-        entityId: v.optional(v.string()),
-        detail: v.optional(v.string()),
-      }),
-    ),
+    metadata: v.optional(v.any()),
   },
+
   handler: async (ctx, args) => {
     return await ctx.db.insert("activityEvents", {
       ...args,

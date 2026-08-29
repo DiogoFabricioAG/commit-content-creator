@@ -9,8 +9,18 @@
  */
 
 import type * as activity from "../activity.js";
+import type * as approvalMessages from "../approvalMessages.js";
+import type * as approvalRequests from "../approvalRequests.js";
+import type * as commitAnalyses from "../commitAnalyses.js";
 import type * as commits from "../commits.js";
 import type * as githubEvents from "../githubEvents.js";
+import type * as postVersions from "../postVersions.js";
+import type * as posts from "../posts.js";
+import type * as repositories from "../repositories.js";
+import type * as socialAccounts from "../socialAccounts.js";
+import type * as stories from "../stories.js";
+import type * as storyClusters from "../storyClusters.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -20,8 +30,18 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activity: typeof activity;
+  approvalMessages: typeof approvalMessages;
+  approvalRequests: typeof approvalRequests;
+  commitAnalyses: typeof commitAnalyses;
   commits: typeof commits;
   githubEvents: typeof githubEvents;
+  postVersions: typeof postVersions;
+  posts: typeof posts;
+  repositories: typeof repositories;
+  socialAccounts: typeof socialAccounts;
+  stories: typeof stories;
+  storyClusters: typeof storyClusters;
+  users: typeof users;
 }>;
 
 /**

@@ -46,7 +46,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_github_repository", ["githubRepositoryId"]),
+    .index("by_github_repository", ["githubRepositoryId"])
+    .index("by_full_name", ["fullName"]),
 
   githubEvents: defineTable({
     deliveryId: v.string(),
@@ -91,6 +92,142 @@ export default defineSchema({
     .index("by_repository_sha", ["repositoryId", "sha"])
     .index("by_repository_created_at", ["repositoryId", "createdAt"]),
 
+  commitAnalyses: defineTable({
+    commitId: v.id("commits"),
+    repositoryId: v.id("repositories"),
+    type: v.string(),
+    summary: v.string(),
+    problem: v.optional(v.string()),
+    solution: v.optional(v.string()),
+    impact: v.optional(v.string()),
+    technologies: v.array(v.string()),
+    importance: v.number(),
+    publishability: v.number(),
+    potentialStory: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_commit", ["commitId"])
+    .index("by_repository", ["repositoryId"]),
+
+  storyClusters: defineTable({
+    repositoryId: v.id("repositories"),
+    relatedCommitIds: v.array(v.id("commits")),
+    relationshipMetadata: v.optional(
+      v.object({
+        reason: v.optional(v.string()),
+        score: v.optional(v.number()),
+      }),
+    ),
+    updatedAt: v.number(),
+  }).index("by_repository", ["repositoryId"]),
+
+  stories: defineTable({
+    userId: v.id("users"),
+    repositoryId: v.id("repositories"),
+    title: v.string(),
+    summary: v.string(),
+    storyType: v.string(),
+    problem: v.optional(v.string()),
+    attempts: v.optional(v.array(v.string())),
+    solution: v.optional(v.string()),
+    learning: v.optional(v.string()),
+    impact: v.optional(v.string()),
+    relatedCommitIds: v.array(v.id("commits")),
+    confidence: v.number(),
+    publishability: v.number(),
+    status: v.union(
+      v.literal("detected"),
+      v.literal("drafted"),
+      v.literal("approved"),
+      v.literal("published"),
+      v.literal("rejected"),
+      v.literal("archived"),
+    ),
+    detectedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_repository", ["repositoryId"]),
+
+  posts: defineTable({
+    userId: v.id("users"),
+    storyId: v.id("stories"),
+    platform: v.literal("linkedin"),
+    format: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("awaiting_approval"),
+      v.literal("approved"),
+      v.literal("publishing"),
+      v.literal("published"),
+      v.literal("failed"),
+      v.literal("rejected"),
+    ),
+    currentVersionId: v.optional(v.id("postVersions")),
+    externalPostUrn: v.optional(v.string()),
+    publishedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_story", ["storyId"]),
+
+  postVersions: defineTable({
+    postId: v.id("posts"),
+    version: v.number(),
+    title: v.optional(v.string()),
+    body: v.string(),
+    generationReason: v.optional(v.string()),
+    createdAt: v.number(),
+    approvedAt: v.optional(v.number()),
+  })
+    .index("by_post", ["postId"])
+    .index("by_post_version", ["postId", "version"]),
+
+  socialAccounts: defineTable({
+    userId: v.id("users"),
+    provider: v.literal("linkedin"),
+    providerMemberId: v.optional(v.string()),
+    authorUrn: v.optional(v.string()),
+    accessTokenEncrypted: v.string(),
+    expiresAt: v.optional(v.number()),
+    scopes: v.array(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user_provider", ["userId", "provider"]),
+
+  approvalRequests: defineTable({
+    userId: v.id("users"),
+    postId: v.id("posts"),
+    channel: v.literal("whatsapp"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("revised"),
+      v.literal("rejected"),
+      v.literal("clarify"),
+      v.literal("hold"),
+    ),
+    currentPostVersionId: v.id("postVersions"),
+    recipientPhone: v.string(),
+    kapsoOutboundMessageId: v.optional(v.string()),
+    createdAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_phone_status", ["recipientPhone", "status"])
+    .index("by_post", ["postId"]),
+
+  approvalMessages: defineTable({
+    approvalRequestId: v.id("approvalRequests"),
+    direction: v.union(v.literal("inbound"), v.literal("outbound")),
+    messageId: v.string(),
+    content: v.string(),
+    interpretedIntent: v.optional(v.string()),
+    confidence: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_request", ["approvalRequestId"])
+    .index("by_message_id", ["messageId"]),
+
   activityEvents: defineTable({
     userId: v.id("users"),
     repositoryId: v.optional(v.id("repositories")),
@@ -102,12 +239,8 @@ export default defineSchema({
       v.literal("failed"),
       v.literal("waiting"),
     ),
-    metadata: v.optional(
-      v.object({
-        entityId: v.optional(v.string()),
-        detail: v.optional(v.string()),
-      }),
-    ),
+    metadata: v.optional(v.any()),
     timestamp: v.number(),
   }).index("by_user_timestamp", ["userId", "timestamp"]),
 });
+

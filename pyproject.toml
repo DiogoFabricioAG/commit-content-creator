@@ -5,8 +5,10 @@ description = "FastAPI backend for the Proof of Work content pipeline."
 requires-python = ">=3.12"
 dependencies = [
   "convex==0.7.0",
+  "cryptography>=50.0.1",
   "fastapi>=0.141,<0.142",
   "httpx>=0.28,<0.29",
+  "openai>=3.6.0",
   "pydantic-settings>=2.15,<2.16",
   "uvicorn[standard]>=0.52,<0.53",
 ]
@@ -30,6 +32,8 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
 
 [tool.pytest.ini_options]
 testpaths = ["apps/backend/tests"]
