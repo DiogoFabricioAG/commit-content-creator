@@ -41,7 +41,7 @@ O si deseas actualizar únicamente el secreto de GitHub:
 .\deploy\set-webhook-secret.ps1
 ```
 
-Los scripts solicitan los valores como entradas ocultas, actualizan `/opt/laborin/deploy/.env.production`, recrean solo `laborin-backend` y verifican `/health`. Si PowerShell bloquea la ejecución por la política local, usar:
+Los scripts solicitan los valores como entradas ocultas, transfieren un script temporal sin secretos, actualizan `/opt/laborin/deploy/.env.production`, recrean solo `laborin-backend` y esperan a que `/health` esté disponible. Si PowerShell bloquea la ejecución por la política local, usar:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\deploy\set-production-secrets.ps1

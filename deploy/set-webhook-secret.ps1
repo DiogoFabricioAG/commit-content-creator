@@ -11,6 +11,26 @@ if (-not (Test-Path -LiteralPath $KeyPath -PathType Leaf)) {
     throw "No se encontró la llave SSH: $KeyPath"
 }
 
+$remoteScriptLocal = Join-Path $PSScriptRoot "set-webhook-secret.remote.sh"
+if (-not (Test-Path -LiteralPath $remoteScriptLocal -PathType Leaf)) {
+    throw "No se encontró el script remoto: $remoteScriptLocal"
+}
+
+if ($RemoteDir -notmatch "^[A-Za-z0-9._/-]+$") {
+    throw "RemoteDir solo puede contener caracteres seguros de ruta Unix."
+}
+
+$sshArgs = @(
+    "-o", "IdentitiesOnly=yes",
+    "-o", "BatchMode=yes",
+    "-i", $KeyPath,
+    "$User@$Server"
+)
+
+$remoteScriptName = "laborin-set-webhook-secret-$([Guid]::NewGuid().ToString('N')).sh"
+$remoteScriptPath = "/tmp/$remoteScriptName"
+$remoteScriptTarget = "$User@$Server`:$remoteScriptPath"
+$uploaded = $false
 $secretSecure = Read-Host "Webhook secret nuevo (no se mostrará)" -AsSecureString
 $secretPointer = [IntPtr]::Zero
 $secret = $null
@@ -27,89 +47,28 @@ try {
         throw "El webhook secret debe estar en una sola línea."
     }
 
-    if ($RemoteDir -notmatch "^[A-Za-z0-9._/-]+$") {
-        throw "RemoteDir solo puede contener caracteres seguros de ruta Unix."
-    }
-
-    $remoteCommand = @'
-set -euo pipefail
-
-IFS= read -r GITHUB_WEBHOOK_SECRET
-GITHUB_WEBHOOK_SECRET="${GITHUB_WEBHOOK_SECRET%$'\r'}"
-if [ -z "$GITHUB_WEBHOOK_SECRET" ]; then
-  echo "El webhook secret recibido está vacío." >&2
-  exit 1
-fi
-export GITHUB_WEBHOOK_SECRET
-
-remote_dir=__REMOTE_DIR__
-env_file="$remote_dir/deploy/.env.production"
-compose_file="$remote_dir/deploy/compose.yaml"
-
-if [ ! -f "$env_file" ]; then
-  echo "No existe $env_file en el VPS." >&2
-  exit 1
-fi
-
-tmp_file="$(mktemp)"
-cleanup() {
-  rm -f "$tmp_file"
-}
-trap cleanup EXIT
-
-awk '
-  BEGIN { updated = 0 }
-  /^GITHUB_WEBHOOK_SECRET=/ {
-    print "GITHUB_WEBHOOK_SECRET=" ENVIRON["GITHUB_WEBHOOK_SECRET"]
-    updated = 1
-    next
-  }
-  { print }
-  END {
-    if (!updated) print "GITHUB_WEBHOOK_SECRET=" ENVIRON["GITHUB_WEBHOOK_SECRET"]
-  }
-' "$env_file" > "$tmp_file"
-
-chmod 600 "$tmp_file"
-mv "$tmp_file" "$env_file"
-unset GITHUB_WEBHOOK_SECRET
-
-docker compose --env-file "$env_file" -f "$compose_file" up -d --no-deps --force-recreate backend
-docker compose --env-file "$env_file" -f "$compose_file" ps backend
-
-healthy=""
-for attempt in $(seq 1 20); do
-  healthy="$(docker inspect --format '{{.State.Health.Status}}' laborin-backend 2>/dev/null || true)"
-  if [ "$healthy" = "healthy" ]; then
-    break
-  fi
-  sleep 2
-done
-
-if [ "$healthy" != "healthy" ]; then
-  echo "laborin-backend no llegó a estado healthy." >&2
-  docker logs --tail 80 laborin-backend >&2 || true
-  exit 1
-fi
-
-curl --fail --silent --show-error --retry 5 --retry-delay 1 --retry-connrefused https://laborin.meowlab.tech/health
-printf '\nWebhook secret actualizado y backend reiniciado.\n'
-'@
-    $remoteCommand = $remoteCommand.Replace("__REMOTE_DIR__", $RemoteDir)
-
-    $sshArgs = @(
+    & scp @(
         "-o", "IdentitiesOnly=yes",
         "-o", "BatchMode=yes",
         "-i", $KeyPath,
-        "$User@$Server"
+        $remoteScriptLocal,
+        $remoteScriptTarget
     )
+    if ($LASTEXITCODE -ne 0) {
+        throw "No se pudo transferir el script temporal al VPS (scp exitó con $LASTEXITCODE)."
+    }
+    $uploaded = $true
 
-    $secret | & ssh @sshArgs $remoteCommand
+    $secret | & ssh @sshArgs "bash $remoteScriptPath $RemoteDir"
     if ($LASTEXITCODE -ne 0) {
         throw "No se pudo actualizar el webhook secret en el VPS (ssh exitó con $LASTEXITCODE)."
     }
 }
 finally {
+    if ($uploaded) {
+        & ssh @sshArgs "rm -f $remoteScriptPath" *> $null
+    }
+
     if ($secretPointer -ne [IntPtr]::Zero) {
         [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($secretPointer)
     }
