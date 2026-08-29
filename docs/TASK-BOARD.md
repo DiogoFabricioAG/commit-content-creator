@@ -13,7 +13,7 @@ Usar `Blocked` cuando exista una dependencia externa o decisión material que no
 | ID | Tarea | Dependencias | Responsable sugerido | Estado | Entrega |
 |---|---|---|---|---|---|
 | M0-01 | Bootstrap del workspace | — | Tech Lead | **In progress** | Monorepo, comandos, Git inicial/remoto definido |
-| M0-02 | Esqueleto Web | M0-01 | Frontend | Backlog | Next.js arrancable, layout base, checks |
+| M0-02 | Esqueleto Web | M0-01 | Frontend | **Done** | Next.js arrancable, layout base, checks |
 | M0-03 | Esqueleto FastAPI | M0-01 | Backend | Backlog | `/health`, config Pydantic, checks |
 | M0-04 | Modelo Convex inicial | M0-01 | Data/Backend | Backlog | Schema, índices, queries/mutations mínimas |
 | M0-05 | Contratos y configuración | M0-01 | Tech Lead + Backend | Backlog | `.env.example`, DTOs, contratos |

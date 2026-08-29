@@ -38,6 +38,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Momento de demo previsto:** abrir el dashboard y mostrar que el producto distingue entre entorno preparado y conexiones externas todavía no configuradas.
 
+### 2026-08-29 · Dashboard base visible
+
+**Qué cambió:** el equipo ya puede abrir un dashboard real de Next.js con una primera lectura del pipeline y sin datos inventados.
+
+**Decisión de producto:** la interfaz comunica qué está preparado y qué conexión sigue pendiente. El provider de Convex se activa solo cuando existe su URL pública.
+
+**Evidencia:** build, lint y typecheck de Web pasan; la pantalla muestra GitHub, inteligencia, aprobación y LinkedIn como etapas del pipeline.
+
+**Momento de demo:** se puede enseñar la promesa del producto antes de conectar proveedores y explicar que publicar queda protegido por aprobación humana.
+
+**Siguiente paso:** cerrar el modelo Convex inicial y conectar el estado persistente al primer vertical slice.
+
 ## Hitos que debemos registrar
 
 | Hito | Evidencia técnica | Momento narrativo |
