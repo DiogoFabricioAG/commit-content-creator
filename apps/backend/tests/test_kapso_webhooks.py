@@ -109,3 +109,30 @@ def test_parse_kapso_buffered_v2_messages() -> None:
         "wamid.batch-1",
         "wamid.batch-2",
     ]
+
+
+def test_parse_kapso_interactive_button_reply() -> None:
+    payload = {
+        "data": {
+            "message": {
+                "id": "wamid.button-1",
+                "type": "interactive",
+                "interactive": {
+                    "type": "button_reply",
+                    "button_reply": {
+                        "id": "approval_publish",
+                        "title": "Publicar",
+                    },
+                },
+                "from": "+51923790280",
+            }
+        }
+    }
+
+    inbound = parse_kapso_inbound_message(payload)
+
+    assert inbound is not None
+    assert inbound.message_type == "interactive"
+    assert inbound.button_id == "approval_publish"
+    assert inbound.button_title == "Publicar"
+    assert inbound.body == "Publicar"

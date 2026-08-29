@@ -191,29 +191,25 @@ class GitHubEventProcessor:
                 metadata={"postId": post_id, "versionId": version_id},
             )
 
-            # 8. Send WhatsApp Approval via Kapso
+            # 8. Queue approval without sending an outbound message. Kapso free-form
+            # messages are sent only after the user opens the 24-hour conversation window.
             phone = self.settings.default_user_phone
-            outbound = self.kapso_client.send_draft_for_approval(
-                to_phone=phone,
-                story_title=story_result.title,
-                post_body=draft_result.body,
-                version=1,
-            )
-
             approval_req_id = self.convex.record_approval_request(
                 user_id=user_id,
                 post_id=post_id,
                 current_post_version_id=version_id,
                 recipient_phone=phone,
                 status="pending",
-                kapso_msg_id=outbound.message_id,
             )
 
             self.convex.record_activity(
                 user_id=user_id,
-                type_="approval.whatsapp.sent",
-                label=f"Sent draft V1 to WhatsApp ({phone}) via Kapso",
-                status="completed",
+                type_="approval.whatsapp.queued",
+                label=(
+                    f"Draft V1 queued for WhatsApp ({phone}); "
+                    "waiting for an inbound message to open the 24h window"
+                ),
+                status="started",
                 repository_id=repo_id,
                 metadata={"approvalRequestId": approval_req_id},
             )

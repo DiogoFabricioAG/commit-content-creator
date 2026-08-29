@@ -83,3 +83,15 @@ export const updateStatus = mutation({
     await ctx.db.patch(args.approvalRequestId, patch);
   },
 });
+
+export const setOutboundMessageId = mutation({
+  args: {
+    approvalRequestId: v.id("approvalRequests"),
+    kapsoOutboundMessageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.approvalRequestId, {
+      kapsoOutboundMessageId: args.kapsoOutboundMessageId,
+    });
+  },
+});

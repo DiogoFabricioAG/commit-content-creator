@@ -75,6 +75,18 @@ def _parse_kapso_message(payload: dict[str, Any]) -> KapsoInboundMessage | None:
     body = ""
     raw_text = message.get("text")
     text_obj = cast(dict[str, Any], raw_text) if isinstance(raw_text, dict) else None
+    raw_interactive = message.get("interactive")
+    interactive = (
+        cast(dict[str, Any], raw_interactive)
+        if isinstance(raw_interactive, dict)
+        else {}
+    )
+    raw_button_reply = interactive.get("button_reply")
+    button_reply = (
+        cast(dict[str, Any], raw_button_reply)
+        if isinstance(raw_button_reply, dict)
+        else {}
+    )
     for candidate in [
         message.get("body"),
         text_obj.get("body") if text_obj else None,
@@ -83,6 +95,7 @@ def _parse_kapso_message(payload: dict[str, Any]) -> KapsoInboundMessage | None:
         data.get("body"),
         data.get("text"),
         payload.get("body"),
+        button_reply.get("title"),
     ]:
         if isinstance(candidate, str) and candidate.strip():
             body = candidate.strip()
@@ -95,6 +108,9 @@ def _parse_kapso_message(payload: dict[str, Any]) -> KapsoInboundMessage | None:
         or f"msg_{abs(hash(body + from_phone))}"
     )
     timestamp_value = message.get("timestamp") or data.get("timestamp")
+    message_type = str(message.get("type") or ("interactive" if button_reply else "text"))
+    button_id = button_reply.get("id")
+    button_title = button_reply.get("title")
 
     if not from_phone or not body:
         return None
@@ -104,6 +120,9 @@ def _parse_kapso_message(payload: dict[str, Any]) -> KapsoInboundMessage | None:
         from_phone=_normalize_phone_number(from_phone),
         body=body,
         timestamp=int(timestamp_value or 0),
+        message_type=message_type,
+        button_id=str(button_id) if button_id else None,
+        button_title=str(button_title) if button_title else None,
         raw_payload=payload,
     )
 

@@ -372,6 +372,20 @@ class ConvexGateway:
             payload["currentPostVersionId"] = current_post_version_id
         self.client.mutation("approvalRequests:updateStatus", payload)
 
+    def set_approval_outbound_message_id(
+        self,
+        *,
+        approval_request_id: str,
+        kapso_message_id: str,
+    ) -> None:
+        self.client.mutation(
+            "approvalRequests:setOutboundMessageId",
+            {
+                "approvalRequestId": approval_request_id,
+                "kapsoOutboundMessageId": kapso_message_id,
+            },
+        )
+
     def record_approval_message(
         self,
         *,

@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 from app.config import Settings
 from app.schemas.kapso import KapsoOutboundMessage
@@ -50,6 +52,75 @@ class KapsoClient:
                 message_id=message_id,
             )
 
+    def send_interactive_buttons(
+        self,
+        to_phone: str,
+        body: str,
+        buttons: list[dict[str, str]],
+    ) -> KapsoOutboundMessage:
+        """Send reply buttons while the user-initiated WhatsApp window is open."""
+        if not 1 <= len(buttons) <= 3:
+            raise ValueError("WhatsApp interactive messages require one to three buttons")
+
+        normalized_buttons: list[dict[str, Any]] = []
+        for button in buttons:
+            button_id = button.get("id", "").strip()
+            title = button.get("title", "").strip()
+            if not button_id or not title:
+                raise ValueError("WhatsApp buttons require a non-empty id and title")
+            normalized_buttons.append(
+                {
+                    "type": "reply",
+                    "reply": {"id": button_id, "title": title[:20]},
+                }
+            )
+
+        if (
+            not self.settings.kapso_api_key
+            or not self.settings.kapso_phone_number_id
+            or self.settings.demo_mode
+        ):
+            msg_id = f"kapso_sim_{abs(hash(to_phone + body + str(normalized_buttons)))}"
+            return KapsoOutboundMessage(
+                to_phone=to_phone,
+                body=body,
+                message_id=msg_id,
+                message_type="interactive",
+            )
+
+        headers = {
+            "X-API-Key": self.settings.kapso_api_key,
+            "Content-Type": "application/json",
+        }
+        payload: dict[str, Any] = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to_phone,
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "body": {"text": body},
+                "action": {"buttons": normalized_buttons},
+            },
+        }
+
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f"{self.base_url}/v24.0/{self.settings.kapso_phone_number_id}/messages",
+                headers=headers,
+                json=payload,
+            )
+            response.raise_for_status()
+            data = response.json()
+            messages = data.get("messages", [])
+            message_id = messages[0].get("id") if messages else data.get("id")
+            return KapsoOutboundMessage(
+                to_phone=to_phone,
+                body=body,
+                message_id=message_id,
+                message_type="interactive",
+            )
+
     def send_draft_for_approval(
         self,
         to_phone: str,
@@ -58,17 +129,19 @@ class KapsoClient:
         version: int = 1,
     ) -> KapsoOutboundMessage:
         header = f'🔥 Encontré una historia para LinkedIn (V{version}):\n\n"{story_title}"'
-        options = (
-            "¿Qué hacemos con esto?\n\n"
-            "Puedes responder naturalmente:\n"
-            "• publícalo\n"
-            "• no\n"
-            "• hazlo más corto\n"
-            "• cambia el inicio\n"
-            "• déjalo para después"
+        full_message = (
+            f"{header}\n\n{post_body}\n\n"
+            "Revisa el borrador y elige una acción. También puedes responder con texto."
         )
-        full_message = f"{header}\n\n{post_body}\n\n{options}"
-        return self.send_message(to_phone, full_message)
+        return self.send_interactive_buttons(
+            to_phone,
+            full_message,
+            [
+                {"id": "approval_review", "title": "Revisar"},
+                {"id": "approval_publish", "title": "Publicar"},
+                {"id": "approval_reject", "title": "Descartar"},
+            ],
+        )
 
     def send_published_confirmation(
         self,
@@ -89,5 +162,12 @@ class KapsoClient:
             "• 'Publicar' para subirlo a LinkedIn\n"
             "• 'Hazlo más corto' o describe los cambios que deseas\n"
             "• 'No' para cancelar"
+        )
+        return self.send_message(to_phone, message)
+
+    def send_revision_prompt(self, to_phone: str) -> KapsoOutboundMessage:
+        message = (
+            "✍️ Claro. Dime qué quieres cambiar del borrador y preparo una nueva versión.\n\n"
+            "Por ejemplo: hazlo más corto, cambia el inicio o usa un tono más técnico."
         )
         return self.send_message(to_phone, message)

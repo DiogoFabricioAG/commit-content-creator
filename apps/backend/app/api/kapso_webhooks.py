@@ -9,6 +9,7 @@ from app.integrations.convex_client import ConvexGateway
 from app.intelligence.approval_agent.agent import ApprovalAgent
 from app.intelligence.content_generator.generator import ContentGenerator
 from app.linkedin.publisher import LinkedInPublisher
+from app.schemas.approval import ApprovalDecision
 from app.schemas.kapso import KapsoInboundMessage
 from app.schemas.story import StoryDetectionResult
 from app.whatsapp.kapso.client import KapsoClient
@@ -51,8 +52,67 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     draft_body = latest_version.get("body") if latest_version else ""
     version_num = int(latest_version.get("version", 1)) if latest_version else 1
 
+    # The GitHub push queues the approval but does not send a business-initiated
+    # message. The first inbound message opens the WhatsApp 24-hour window.
+    if not pending.get("kapsoOutboundMessageId"):
+        latest_title = "Historia técnica"
+        if latest_version:
+            raw_title = latest_version.get("title")
+            if isinstance(raw_title, str) and raw_title.strip():
+                latest_title = raw_title.strip()
+        outbound = kapso_client.send_draft_for_approval(
+            to_phone=inbound.from_phone,
+            story_title=latest_title,
+            post_body=draft_body,
+            version=version_num,
+        )
+        if outbound.message_id:
+            convex.set_approval_outbound_message_id(
+                approval_request_id=req_id,
+                kapso_message_id=outbound.message_id,
+            )
+
+        convex.record_approval_message(
+            approval_request_id=req_id,
+            direction="inbound",
+            message_id=inbound.message_id,
+            content=inbound.body,
+            interpreted_intent="session_started",
+            confidence=1.0,
+        )
+        if outbound.message_id:
+            convex.record_approval_message(
+                approval_request_id=req_id,
+                direction="outbound",
+                message_id=outbound.message_id,
+                content=outbound.body,
+            )
+        convex.record_activity(
+            user_id=user_id,
+            type_="approval.whatsapp.sent",
+            label=f"Sent draft V{version_num} to WhatsApp ({inbound.from_phone}) via Kapso",
+            status="completed",
+            metadata={"approvalRequestId": req_id, "trigger": "inbound_user_message"},
+        )
+        return
+
     # 2. Interpret intent
-    decision = agent.interpret_message(inbound.body, draft_body)
+    button_decisions = {
+        "approval_publish": ApprovalDecision(
+            intent="approve",
+            confidence=1.0,
+            reasoning="Usuario pulsó el botón Publicar.",
+        ),
+        "approval_reject": ApprovalDecision(
+            intent="reject",
+            confidence=1.0,
+            reasoning="Usuario pulsó el botón Descartar.",
+        ),
+    }
+    button_decision = (
+        button_decisions.get(inbound.button_id) if inbound.button_id else None
+    )
+    decision = button_decision or agent.interpret_message(inbound.body, draft_body)
 
     # Record message in Convex
     convex.record_approval_message(
@@ -75,6 +135,17 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
             "confidence": str(decision.confidence),
         },
     )
+
+    if inbound.button_id == "approval_review":
+        outbound = kapso_client.send_revision_prompt(inbound.from_phone)
+        if outbound.message_id:
+            convex.record_approval_message(
+                approval_request_id=req_id,
+                direction="outbound",
+                message_id=outbound.message_id,
+                content=outbound.body,
+            )
+        return
 
     # 3. Handle Decision
     if decision.intent == "approve":
