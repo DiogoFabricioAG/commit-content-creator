@@ -104,12 +104,12 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
   const technicalLevel = overrideTechnicalLevel ?? existingPrefs?.technicalLevel ?? "high";
   const targetAudience = overrideTargetAudience ?? existingPrefs?.targetAudience ?? "senior_engineers";
   const postLength = overridePostLength ?? existingPrefs?.postLength ?? "standard";
-  const avoidWords =
+  const avoidWords: string[] =
     overrideAvoidWords ??
     existingPrefs?.avoidWords ??
     ["revolucionario", "game-changer", "mágico", "secreto", "infalible"];
   const preferredCTA = overridePreferredCTA ?? existingPrefs?.preferredCTA ?? "discussion_question";
-  const hashtags =
+  const hashtags: string[] =
     overrideHashtags ?? existingPrefs?.hashtags ?? ["#SoftwareEngineering", "#Architecture", "#ProofOfWork"];
   const autoPublish = overrideAutoPublish ?? existingPrefs?.autoPublish ?? false;
 
@@ -121,8 +121,9 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
   };
 
   const removeAvoidWord = (w: string) => {
-    setOverrideAvoidWords(avoidWords.filter((item) => item !== w));
+    setOverrideAvoidWords(avoidWords.filter((item: string) => item !== w));
   };
+
 
   const handleFinish = async () => {
     if (!activeUserId) return;
@@ -520,7 +521,7 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
               </p>
 
               <div className="mt-3 flex flex-wrap gap-2">
-                {avoidWords.map((w) => (
+                {avoidWords.map((w: string) => (
                   <span
                     key={w}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-300"
@@ -536,6 +537,7 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
                   </span>
                 ))}
               </div>
+
 
               <div className="mt-3 flex gap-2">
                 <input
