@@ -36,6 +36,7 @@ try {
 set -euo pipefail
 
 IFS= read -r GITHUB_WEBHOOK_SECRET
+GITHUB_WEBHOOK_SECRET="${GITHUB_WEBHOOK_SECRET%$'\r'}"
 if [ -z "$GITHUB_WEBHOOK_SECRET" ]; then
   echo "El webhook secret recibido está vacío." >&2
   exit 1
