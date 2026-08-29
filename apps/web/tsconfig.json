@@ -25,9 +25,16 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@convex/*": [
+        "../../convex/convex/_generated/*"
+      ],
+      "@convex/api": [
+        "../../convex/convex/_generated/api"
       ]
     }
   },
+
   "include": [
     "next-env.d.ts",
     ".next/types/**/*.ts",

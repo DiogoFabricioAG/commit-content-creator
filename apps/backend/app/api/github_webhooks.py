@@ -4,21 +4,22 @@ from typing import Any, cast
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 
 from app.config import get_settings
+from app.github.processor import GitHubEventProcessor
 from app.github.webhooks import (
     InvalidGitHubPayload,
     InvalidGitHubSignature,
     normalize_github_event,
     verify_github_signature,
 )
-from app.integrations.convex_client import ConvexGateway
 from app.schemas.github import NormalizedGitHubEvent
 
 router = APIRouter(prefix="/webhooks/github", tags=["github"])
 
 
-def _persist_event(event: NormalizedGitHubEvent) -> None:
+def _persist_event(event: NormalizedGitHubEvent, payload: dict[str, Any] | None = None) -> None:
     settings = get_settings()
-    ConvexGateway(settings).record_github_event(event)
+    GitHubEventProcessor(settings).process_event(event, payload)
+
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED)
@@ -71,5 +72,5 @@ async def receive_github_webhook(
     except (json.JSONDecodeError, InvalidGitHubPayload) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
-    background_tasks.add_task(_persist_event, event)
+    background_tasks.add_task(_persist_event, event, payload)
     return {"status": "accepted", "delivery_id": event.delivery_id}

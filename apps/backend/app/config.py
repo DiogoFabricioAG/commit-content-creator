@@ -12,6 +12,21 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     demo_mode: bool = True
     github_webhook_secret: str | None = None
+    github_token: str | None = None
+
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o"
+
+    kapso_api_key: str | None = None
+    kapso_phone_number_id: str | None = None
+    kapso_webhook_secret: str | None = None
+
+    linkedin_client_id: str | None = None
+    linkedin_client_secret: str | None = None
+    linkedin_redirect_uri: str = "http://localhost:8000/auth/linkedin/callback"
+
+    token_encryption_key: str | None = None
+    default_user_phone: str = "+51999888777"
 
     model_config = SettingsConfigDict(
         env_file=".env",

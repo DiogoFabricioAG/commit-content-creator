@@ -8,15 +8,10 @@ type ProvidersProps = {
 };
 
 export function Providers({ children }: ProvidersProps) {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-  const client = useMemo(
-    () => (convexUrl ? new ConvexReactClient(convexUrl) : null),
-    [convexUrl],
-  );
-
-  if (!client) {
-    return children;
-  }
+  const convexUrl =
+    process.env.NEXT_PUBLIC_CONVEX_URL || "https://tremendous-kangaroo-148.convex.cloud";
+  const client = useMemo(() => new ConvexReactClient(convexUrl), [convexUrl]);
 
   return <ConvexProvider client={client}>{children}</ConvexProvider>;
 }
+

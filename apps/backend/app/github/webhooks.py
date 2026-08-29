@@ -21,11 +21,14 @@ def verify_github_signature(body: bytes, signature: str | None, secret: str | No
     if not signature.startswith("sha256="):
         raise InvalidGitHubSignature("GitHub signature must use sha256")
 
-    expected = "sha256=" + hmac.new(
-        secret.encode("utf-8"),
-        body,
-        hashlib.sha256,
-    ).hexdigest()
+    expected = (
+        "sha256="
+        + hmac.new(
+            secret.encode("utf-8"),
+            body,
+            hashlib.sha256,
+        ).hexdigest()
+    )
 
     if not hmac.compare_digest(expected, signature):
         raise InvalidGitHubSignature("GitHub signature does not match")

@@ -1,7 +1,11 @@
+from typing import Any, cast
+
 from convex.values import CoercibleToConvexValue
 
 from app.config import Settings
-from app.schemas.github import NormalizedGitHubEvent
+from app.schemas.commit_analysis import CommitAnalysis
+from app.schemas.github import NormalizedCommit, NormalizedGitHubEvent
+from app.schemas.story import StoryDetectionResult
 from convex import ConvexClient
 
 
@@ -9,6 +13,7 @@ class ConvexGateway:
     """Lazily exposes the official Convex Python client to backend services."""
 
     def __init__(self, settings: Settings) -> None:
+        self.settings = settings
         self._client = ConvexClient(settings.convex_url) if settings.convex_url else None
 
     @property
@@ -21,7 +26,67 @@ class ConvexGateway:
             raise RuntimeError("CONVEX_URL is required before using the Convex client")
         return self._client
 
-    def record_github_event(self, event: NormalizedGitHubEvent) -> None:
+    # Activity & Users
+    def record_activity(
+        self,
+        *,
+        user_id: str,
+        type_: str,
+        label: str,
+        status: str,
+        repository_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> str | None:
+        if not self.is_configured:
+            return None
+        payload: dict[str, CoercibleToConvexValue] = {
+            "userId": user_id,
+            "type": type_,
+            "label": label,
+            "status": status,
+        }
+        if repository_id:
+            payload["repositoryId"] = repository_id
+        if metadata:
+            payload["metadata"] = cast(dict[str, CoercibleToConvexValue], metadata)
+        result = self.client.mutation("activity:record", payload)
+        return cast(str, result) if result else None
+
+    def get_or_create_default_user(
+        self,
+        whatsapp_phone: str | None = None,
+        display_name: str | None = None,
+        email: str | None = None,
+    ) -> str:
+        phone = whatsapp_phone or self.settings.default_user_phone
+        result = self.client.mutation(
+            "users:getOrCreateDefault",
+            {
+                "whatsappPhone": phone,
+                "displayName": display_name or "Lead Developer",
+                "email": email or "developer@proofofwork.local",
+            },
+        )
+        return cast(str, result)
+
+    def get_or_create_repository(
+        self,
+        *,
+        user_id: str,
+        full_name: str,
+        default_branch: str | None = None,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "userId": user_id,
+            "fullName": full_name,
+        }
+        if default_branch:
+            payload["defaultBranch"] = default_branch
+        result = self.client.mutation("repositories:getOrCreateForUser", payload)
+        return cast(str, result)
+
+    # GitHub Events & Commits
+    def record_github_event(self, event: NormalizedGitHubEvent) -> dict[str, Any]:
         payload: dict[str, CoercibleToConvexValue] = {
             "deliveryId": event.delivery_id,
             "eventType": event.event_type,
@@ -33,4 +98,300 @@ class ConvexGateway:
         if event.action:
             payload["action"] = event.action
 
-        self.client.mutation("githubEvents:record", payload)
+        result = self.client.mutation("githubEvents:record", payload)
+        return cast(dict[str, Any], result)
+
+    def record_commit(self, repository_id: str, commit: NormalizedCommit) -> dict[str, Any]:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "repositoryId": repository_id,
+            "sha": commit.sha,
+            "author": commit.author,
+            "message": commit.message,
+            "committedAt": commit.committed_at,
+            "additions": commit.additions,
+            "deletions": commit.deletions,
+            "changedFiles": commit.changed_files,
+            "files": [f.model_dump() for f in commit.files],
+            "status": commit.status,
+        }
+        if commit.branch:
+            payload["branch"] = commit.branch
+
+        result = self.client.mutation("commits:record", payload)
+        return cast(dict[str, Any], result)
+
+    def list_commits_for_repository(
+        self, repository_id: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "commits:listForRepository",
+            {"repositoryId": repository_id, "limit": limit},
+        )
+        return cast(list[dict[str, Any]], result or [])
+
+    # Commit Intelligence
+    def record_commit_analysis(
+        self,
+        *,
+        commit_id: str,
+        repository_id: str,
+        analysis: CommitAnalysis,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "commitId": commit_id,
+            "repositoryId": repository_id,
+            "type": analysis.type,
+            "summary": analysis.summary,
+            "technologies": analysis.technologies,
+            "importance": analysis.importance,
+            "publishability": analysis.publishability,
+            "potentialStory": analysis.potential_story,
+        }
+        if analysis.problem:
+            payload["problem"] = analysis.problem
+        if analysis.solution:
+            payload["solution"] = analysis.solution
+        if analysis.impact:
+            payload["impact"] = analysis.impact
+
+        result = self.client.mutation("commitAnalyses:record", payload)
+        return cast(str, result)
+
+    # Story Clusters & Stories
+    def record_story_cluster(
+        self,
+        *,
+        repository_id: str,
+        commit_ids: list[str],
+        reason: str | None = None,
+        score: float | None = None,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "repositoryId": repository_id,
+            "relatedCommitIds": commit_ids,
+        }
+        if reason or score is not None:
+            rel_meta: dict[str, CoercibleToConvexValue] = {}
+            if reason:
+                rel_meta["reason"] = reason
+            if score is not None:
+                rel_meta["score"] = score
+            payload["relationshipMetadata"] = rel_meta
+
+        result = self.client.mutation("storyClusters:record", payload)
+        return cast(str, result)
+
+    def record_story(
+        self,
+        *,
+        user_id: str,
+        repository_id: str,
+        story: StoryDetectionResult,
+        related_commit_ids: list[str],
+        status: str = "detected",
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "userId": user_id,
+            "repositoryId": repository_id,
+            "title": story.title,
+            "summary": story.summary,
+            "storyType": story.story_type,
+            "relatedCommitIds": related_commit_ids,
+            "confidence": story.confidence,
+            "publishability": story.publishability,
+            "status": status,
+        }
+        if story.problem:
+            payload["problem"] = story.problem
+        if story.attempts:
+            payload["attempts"] = story.attempts
+        if story.solution:
+            payload["solution"] = story.solution
+        if story.learning:
+            payload["learning"] = story.learning
+        if story.impact:
+            payload["impact"] = story.impact
+
+        result = self.client.mutation("stories:record", payload)
+        return cast(str, result)
+
+    # LinkedIn Posts & Versions
+    def record_post(
+        self,
+        *,
+        user_id: str,
+        story_id: str,
+        format_: str,
+        status: str = "draft",
+    ) -> str:
+        result = self.client.mutation(
+            "posts:record",
+            {
+                "userId": user_id,
+                "storyId": story_id,
+                "platform": "linkedin",
+                "format": format_,
+                "status": status,
+            },
+        )
+        return cast(str, result)
+
+    def record_post_version(
+        self,
+        *,
+        post_id: str,
+        version: int,
+        body: str,
+        title: str | None = None,
+        generation_reason: str | None = None,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "postId": post_id,
+            "version": version,
+            "body": body,
+        }
+        if title:
+            payload["title"] = title
+        if generation_reason:
+            payload["generationReason"] = generation_reason
+
+        result = self.client.mutation("postVersions:record", payload)
+        return cast(str, result)
+
+    def approve_post_version(self, version_id: str) -> None:
+        self.client.mutation("postVersions:approve", {"versionId": version_id})
+
+    def update_post_status(
+        self,
+        post_id: str,
+        status: str,
+        current_version_id: str | None = None,
+    ) -> None:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "postId": post_id,
+            "status": status,
+        }
+        if current_version_id:
+            payload["currentVersionId"] = current_version_id
+        self.client.mutation("posts:updateStatus", payload)
+
+    def set_post_external_urn(
+        self,
+        post_id: str,
+        external_post_urn: str,
+        status: str = "published",
+    ) -> None:
+        self.client.mutation(
+            "posts:setExternalUrn",
+            {
+                "postId": post_id,
+                "externalPostUrn": external_post_urn,
+                "status": status,
+            },
+        )
+
+    # Social Accounts
+    def upsert_social_account(
+        self,
+        *,
+        user_id: str,
+        provider: str = "linkedin",
+        access_token_encrypted: str,
+        scopes: list[str],
+        provider_member_id: str | None = None,
+        author_urn: str | None = None,
+        expires_at: int | None = None,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "userId": user_id,
+            "provider": provider,
+            "accessTokenEncrypted": access_token_encrypted,
+            "scopes": scopes,
+        }
+        if provider_member_id:
+            payload["providerMemberId"] = provider_member_id
+        if author_urn:
+            payload["authorUrn"] = author_urn
+        if expires_at:
+            payload["expiresAt"] = expires_at
+
+        result = self.client.mutation("socialAccounts:upsert", payload)
+        return cast(str, result)
+
+    def get_social_account(self, user_id: str, provider: str = "linkedin") -> dict[str, Any] | None:
+        result = self.client.query(
+            "socialAccounts:getByUserAndProvider",
+            {"userId": user_id, "provider": provider},
+        )
+        return cast(dict[str, Any] | None, result)
+
+    # Approval Requests & Messages
+    def record_approval_request(
+        self,
+        *,
+        user_id: str,
+        post_id: str,
+        current_post_version_id: str,
+        recipient_phone: str,
+        status: str = "pending",
+        kapso_msg_id: str | None = None,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "userId": user_id,
+            "postId": post_id,
+            "channel": "whatsapp",
+            "status": status,
+            "currentPostVersionId": current_post_version_id,
+            "recipientPhone": recipient_phone,
+        }
+        if kapso_msg_id:
+            payload["kapsoOutboundMessageId"] = kapso_msg_id
+
+        result = self.client.mutation("approvalRequests:record", payload)
+        return cast(str, result)
+
+    def get_pending_approval_for_phone(self, recipient_phone: str) -> dict[str, Any] | None:
+        result = self.client.query(
+            "approvalRequests:getPendingForPhone",
+            {"recipientPhone": recipient_phone},
+        )
+        return cast(dict[str, Any] | None, result)
+
+    def update_approval_request(
+        self,
+        *,
+        approval_request_id: str,
+        status: str,
+        current_post_version_id: str | None = None,
+    ) -> None:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "approvalRequestId": approval_request_id,
+            "status": status,
+        }
+        if current_post_version_id:
+            payload["currentPostVersionId"] = current_post_version_id
+        self.client.mutation("approvalRequests:updateStatus", payload)
+
+    def record_approval_message(
+        self,
+        *,
+        approval_request_id: str,
+        direction: str,
+        message_id: str,
+        content: str,
+        interpreted_intent: str | None = None,
+        confidence: float | None = None,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "approvalRequestId": approval_request_id,
+            "direction": direction,
+            "messageId": message_id,
+            "content": content,
+        }
+        if interpreted_intent:
+            payload["interpretedIntent"] = interpreted_intent
+        if confidence is not None:
+            payload["confidence"] = confidence
+
+        result = self.client.mutation("approvalMessages:record", payload)
+        return cast(str, result)

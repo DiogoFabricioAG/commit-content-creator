@@ -1,21 +1,26 @@
-import { Activity, ArrowUpRight, GitCommitHorizontal, Radio, ShieldCheck } from "lucide-react";
+"use client";
 
-import { Button } from "@/components/ui/button";
+import { Activity, ArrowUpRight, CheckCircle2, GitCommitHorizontal, Radio, ShieldCheck, Sparkles } from "lucide-react";
+import { LiveActivityStream } from "@/components/live-activity-stream";
+import { StoryDraftViewer } from "@/components/story-draft-viewer";
 
 const stages = [
-  { label: "GitHub", detail: "Conexión pendiente", icon: GitCommitHorizontal },
-  { label: "Inteligencia", detail: "Esperando evidencia", icon: Activity },
-  { label: "Aprobación", detail: "WhatsApp + Kapso", icon: ShieldCheck },
-  { label: "LinkedIn", detail: "Publicación protegida", icon: ArrowUpRight },
+  { label: "1. GitHub Push", detail: "Webhook autenticado & normalizado", icon: GitCommitHorizontal },
+  { label: "2. Story Intelligence", detail: "Extracción, análisis y agrupación", icon: Activity },
+  { label: "3. WhatsApp / Kapso", detail: "Aprobación natural o revisión", icon: ShieldCheck },
+  { label: "4. LinkedIn Posts API", detail: "Publicación con trazabilidad de versiones", icon: ArrowUpRight },
 ];
 
 export default function Home() {
+
+
   return (
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-8 lg:px-10">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 lg:px-10">
+        {/* Header */}
         <header className="flex items-center justify-between border-b border-[var(--line)] pb-6">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)] text-sm font-bold text-white">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)] text-sm font-bold text-white shadow-lg shadow-[var(--accent)]/30">
               PoW
             </div>
             <div>
@@ -23,65 +28,91 @@ export default function Home() {
               <p className="text-xs text-[var(--muted)]">Story intelligence para developers</p>
             </div>
           </div>
-          <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 font-mono text-xs font-medium text-amber-200">
-            Foundation
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-medium text-emerald-300">
+              <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
+              Convex Live
+            </span>
+            <span className="rounded-full border border-[var(--line)] bg-white/[0.04] px-3 py-1 font-mono text-xs text-[var(--muted)]">
+              M0 → M12 Operational
+            </span>
+          </div>
         </header>
 
-        <section className="grid flex-1 items-center gap-12 py-14 lg:grid-cols-[1.1fr_0.9fr]">
+        {/* Hero & Subhead */}
+        <section className="py-10">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/[0.03] px-3 py-1.5 text-xs text-[var(--muted)]">
+            <Radio className="size-3.5 text-emerald-400 animate-pulse" />
+            Evidence before content · Human approval before publishing
+          </div>
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold leading-[1.05] tracking-[-0.05em] sm:text-5xl lg:text-6xl">
+            Tu trabajo ya tiene una historia.
+            <span className="block text-[var(--accent-soft)]">Proof of Work la encuentra y publica.</span>
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
+            Observa tu actividad de Git, descubre la narrativa técnica detrás de tus commits, prepara borradores grounded para LinkedIn y pide aprobación directa por WhatsApp.
+          </p>
+        </section>
+
+        {/* Pipeline Overview */}
+        <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {stages.map((stage) => {
+            const Icon = stage.icon;
+            return (
+              <div
+                key={stage.label}
+                className="flex flex-col justify-between rounded-2xl border border-[var(--line)] bg-white/[0.025] p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex size-8 items-center justify-center rounded-lg bg-white/[0.06] text-[var(--accent-soft)]">
+                    <Icon className="size-4" />
+                  </div>
+                  <CheckCircle2 className="size-4 text-emerald-400" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm font-semibold">{stage.label}</p>
+                  <p className="text-xs text-[var(--muted)] mt-0.5">{stage.detail}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main Dashboard Workspace */}
+        <section className="grid flex-1 gap-8 lg:grid-cols-[1.2fr_0.8fr] pb-16">
+          {/* Left Column: Story Intelligence & Post Versioning */}
           <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/[0.03] px-3 py-1.5 text-xs text-[var(--muted)]">
-              <Radio className="size-3.5 text-emerald-300" />
-              Sistema preparado para recibir evidencia
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-4 text-[var(--accent-soft)]" />
+                <h2 className="text-lg font-semibold tracking-tight">Narrativa & Borrador</h2>
+              </div>
+              <span className="font-mono text-xs text-[var(--muted)]">Actualización reactiva</span>
             </div>
-            <h1 className="max-w-3xl text-5xl font-semibold leading-[0.98] tracking-[-0.06em] sm:text-6xl">
-              Tu trabajo ya tiene una historia.
-              <span className="block text-[var(--accent-soft)]">Proof of Work la encuentra.</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-7 text-[var(--muted)]">
-              El dashboard base está listo para conectar GitHub, entender cambios relacionados y llevar un borrador a WhatsApp antes de publicar cualquier cosa.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button>Configurar conexiones</Button>
-              <Button variant="outline">Ver arquitectura</Button>
-            </div>
+
+            <StoryDraftViewer />
           </div>
 
-          <div className="rounded-3xl border border-[var(--line)] bg-white/[0.035] p-5 shadow-2xl shadow-black/20">
-            <div className="flex items-start justify-between border-b border-[var(--line)] pb-5">
-              <div>
-              <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Live pipeline</p>
-                <h2 className="mt-2 text-lg font-semibold">Primera rebanada vertical</h2>
+          {/* Right Column: Live Activity Stream */}
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="size-4 text-emerald-400" />
+                <h2 className="text-lg font-semibold tracking-tight">Actividad en Vivo</h2>
               </div>
-              <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-medium text-[var(--muted)]">
-                Sin datos aún
-              </span>
+              <span className="font-mono text-xs text-[var(--muted)]">Convex Sync</span>
             </div>
-            <div className="space-y-3 pt-5">
-              {stages.map((stage, index) => {
-                const Icon = stage.icon;
-                return (
-                  <div key={stage.label} className="relative flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-black/10 p-3.5">
-                    {index < stages.length - 1 ? (
-                      <span className="absolute left-[27px] top-[49px] h-3 w-px bg-[var(--line)]" aria-hidden />
-                    ) : null}
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-[var(--accent-soft)]">
-                      <Icon className="size-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{stage.label}</p>
-                      <p className="text-xs text-[var(--muted)]">{stage.detail}</p>
-                    </div>
-                  </div>
-                );
-              })}
+
+            <div className="rounded-3xl border border-[var(--line)] bg-white/[0.035] p-5 shadow-xl">
+              <LiveActivityStream />
             </div>
           </div>
         </section>
 
-        <footer className="flex flex-col gap-2 border-t border-[var(--line)] pt-5 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
-          <span>Evidence before content · Human approval before publishing</span>
-          <span>Milestone 0 / Foundation</span>
+        {/* Footer */}
+        <footer className="flex flex-col gap-2 border-t border-[var(--line)] py-6 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
+          <span>Proof of Work · Content Machine Vertical Slice</span>
+          <span>LinkedIn + Kapso WhatsApp + Convex + FastAPI + Next.js</span>
         </footer>
       </div>
     </main>
