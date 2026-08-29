@@ -166,7 +166,11 @@ class GitHubEventProcessor:
                 repository_id=repo_id,
             )
 
-            draft_result = self.content_generator.generate_draft(story_result)
+            preferences = self.convex.get_user_preferences(user_id)
+            draft_result = self.content_generator.generate_draft(
+                story_result,
+                preferences=preferences,
+            )
             post_id = self.convex.record_post(
                 user_id=user_id,
                 story_id=story_id,

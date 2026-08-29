@@ -284,6 +284,8 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Qué descubrimos:** cuando GitHub API no estaba disponible, el fallback recibía el payload completo del push en lugar del commit concreto. El resultado era una publicación con títulos como `Shipping: Commit bc5b346` y frases genéricas sin contexto.
 
+**La segunda capa de protección:** algunos borradores antiguos ya habían quedado guardados en Convex antes de corregir el generador. Al abrirse la ventana de WhatsApp, la cola los enviaba literalmente. Añadimos detección de plantillas heredadas y regeneración basada en los commits reales antes de entregar cualquier borrador pendiente; así una corrección de formato también protege la experiencia de los mensajes que ya estaban en cola.
+
 **Qué corregimos:** el procesador ahora identifica el commit exacto dentro de `commits[]`/`head_commit`, conserva mensaje, autor, archivos y timestamp, y el analizador deriva problema, solución, alcance, tecnologías e impacto desde esa evidencia. El redactor evita títulos basados solo en SHA y ya no inserta claims fijos de WebSockets o base de datos en historias ajenas.
 
 **Evidencia:** se añadieron pruebas de fallback del payload de GitHub y de una historia legible para un commit de autenticación; `pnpm check` debe conservar este contrato antes del siguiente despliegue.

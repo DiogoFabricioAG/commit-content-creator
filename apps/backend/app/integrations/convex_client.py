@@ -7,6 +7,7 @@ from convex.values import CoercibleToConvexValue
 from app.config import Settings
 from app.schemas.commit_analysis import CommitAnalysis
 from app.schemas.github import NormalizedCommit, NormalizedGitHubEvent
+from app.schemas.preferences import EditorialPreferences
 from app.schemas.story import StoryDetectionResult
 from convex import ConvexClient
 
@@ -128,6 +129,15 @@ class ConvexGateway:
         result = self.client.query(
             "commits:listForRepository",
             {"repositoryId": repository_id, "limit": limit},
+        )
+        return cast(list[dict[str, Any]], result or [])
+
+    def list_commits_by_ids(self, commit_ids: list[str]) -> list[dict[str, Any]]:
+        if not commit_ids:
+            return []
+        result = self.client.query(
+            "commits:listByIds",
+            {"commitIds": commit_ids},
         )
         return cast(list[dict[str, Any]], result or [])
 
@@ -380,6 +390,33 @@ class ConvexGateway:
             {"userId": user_id, "provider": provider},
         )
         return cast(dict[str, Any] | None, result)
+
+    def get_user_preferences(self, user_id: str) -> EditorialPreferences | None:
+        result = self.client.query("preferences:getForUser", {"userId": user_id})
+        if not result:
+            return None
+
+        raw = cast(dict[str, Any], result)
+        defaults = EditorialPreferences()
+        try:
+            return EditorialPreferences(
+                role_title=str(raw.get("roleTitle") or defaults.role_title),
+                language=raw.get("language") or defaults.language,
+                tone=raw.get("tone") or defaults.tone,
+                target_audience=raw.get("targetAudience") or defaults.target_audience,
+                technical_level=raw.get("technicalLevel") or defaults.technical_level,
+                post_length=raw.get("postLength") or defaults.post_length,
+                avoid_words=raw.get("avoidWords") or defaults.avoid_words,
+                preferred_cta=raw.get("preferredCTA") or defaults.preferred_cta,
+                hashtags=raw.get("hashtags") or defaults.hashtags,
+                allowed_formats=raw.get("allowedFormats") or defaults.allowed_formats,
+                auto_publish=bool(raw.get("autoPublish", defaults.auto_publish)),
+                onboarding_completed=bool(
+                    raw.get("onboardingCompleted", defaults.onboarding_completed)
+                ),
+            )
+        except (TypeError, ValueError):
+            return defaults
 
     # Approval Requests & Messages
     def record_approval_request(

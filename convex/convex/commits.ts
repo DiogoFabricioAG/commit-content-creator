@@ -65,3 +65,17 @@ export const listForRepository = query({
       .take(args.limit ?? 50);
   },
 });
+
+export const listByIds = query({
+  args: {
+    commitIds: v.array(v.id("commits")),
+  },
+  handler: async (ctx, args) => {
+    const commits = [];
+    for (const commitId of args.commitIds) {
+      const commit = await ctx.db.get(commitId);
+      if (commit) commits.push(commit);
+    }
+    return commits;
+  },
+});

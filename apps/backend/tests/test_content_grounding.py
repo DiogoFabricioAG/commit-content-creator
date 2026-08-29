@@ -56,3 +56,14 @@ def test_single_commit_story_and_draft_are_human_readable() -> None:
     assert "Feature or capability needed by users" not in draft.body
     assert "Implemented Commit" not in draft.body
     assert "GitHub" in draft.body
+
+
+def test_legacy_draft_is_detected_before_delivery() -> None:
+    assert ContentGenerator.is_legacy_draft(
+        "Shipping: Commit 9075a85",
+        "Commit 9075a85: Commit 9075a85\n\nModified 0 files",
+    )
+    assert not ContentGenerator.is_legacy_draft(
+        "Cómo añadimos una sesión de GitHub",
+        "El reto:\nEl producto necesitaba una sesión de GitHub.",
+    )

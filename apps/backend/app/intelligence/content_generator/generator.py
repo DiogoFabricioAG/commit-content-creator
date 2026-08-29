@@ -1,4 +1,5 @@
 import json
+import re
 
 from app.config import Settings
 from app.schemas.content import LinkedInDraftResult
@@ -21,11 +22,29 @@ class ContentGenerator:
 
         if self.settings.openai_api_key:
             try:
-                return self._generate_with_llm(story, revision_feedback, previous_draft, prefs)
+                draft = self._generate_with_llm(story, revision_feedback, previous_draft, prefs)
+                if not self.is_legacy_draft(draft.title, draft.body):
+                    return draft
             except Exception:
                 pass
 
         return self._generate_deterministic(story, revision_feedback, previous_draft, prefs)
+
+    @staticmethod
+    def is_legacy_draft(title: str, body: str) -> bool:
+        """Detect the pre-grounding template that must never reach a user."""
+        content = f"{title}\n{body}"
+        return bool(
+            re.search(r"shipping\s*:\s*commit\s+[0-9a-f]{7,}", content, re.IGNORECASE)
+            or re.search(
+                r"commit\s+[0-9a-f]{7,}\s*:\s*commit\s+[0-9a-f]{7,}",
+                content,
+                re.IGNORECASE,
+            )
+            or "feature or capability needed by users" in content.lower()
+            or "implemented commit" in content.lower()
+            or bool(re.search(r"modified\s+0\s+files", content, re.IGNORECASE))
+        )
 
     def _generate_with_llm(
         self,

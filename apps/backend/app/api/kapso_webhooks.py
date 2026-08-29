@@ -8,13 +8,16 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 from app.config import get_settings
 from app.integrations.convex_client import ConvexGateway
 from app.intelligence.approval_agent.agent import ApprovalAgent
+from app.intelligence.commit_analyzer.analyzer import CommitAnalyzer
 from app.intelligence.content_generator.generator import ContentGenerator
 from app.intelligence.media.image_generator import (
     ImageGenerationUnavailable,
     OpenAIImageGenerator,
 )
+from app.intelligence.story_detector.detector import StoryDetector
 from app.linkedin.publisher import LinkedInPublisher
 from app.schemas.approval import ApprovalDecision
+from app.schemas.github import CommitFile, NormalizedCommit
 from app.schemas.kapso import KapsoInboundMessage
 from app.schemas.story import StoryDetectionResult
 from app.whatsapp.kapso.client import KapsoClient
@@ -46,12 +49,126 @@ def _requests_image_generation(message: str) -> bool:
     )
 
 
+def _normalized_commits_from_convex(records: list[dict[str, Any]]) -> list[NormalizedCommit]:
+    commits: list[NormalizedCommit] = []
+    for record in records:
+        raw_files_value: Any = record.get("files")
+        files: list[CommitFile] = []
+        if isinstance(raw_files_value, list):
+            raw_files = cast(list[Any], raw_files_value)
+            for raw_file_value in raw_files:
+                if not isinstance(raw_file_value, dict):
+                    continue
+                raw_file = cast(dict[str, Any], raw_file_value)
+                files.append(
+                    CommitFile(
+                        path=str(raw_file.get("path") or "unknown file"),
+                        status=str(raw_file.get("status") or "modified"),
+                        additions=int(raw_file.get("additions") or 0),
+                        deletions=int(raw_file.get("deletions") or 0),
+                        patch=(
+                            str(raw_file.get("patch"))
+                            if raw_file.get("patch") is not None
+                            else None
+                        ),
+                    )
+                )
+        commits.append(
+            NormalizedCommit(
+                sha=str(record.get("sha") or "unknown"),
+                author=str(record.get("author") or "unknown author"),
+                message=str(record.get("message") or "una mejora técnica"),
+                committed_at=int(record.get("committedAt") or 0),
+                branch=(
+                    str(record.get("branch"))
+                    if record.get("branch") is not None
+                    else None
+                ),
+                additions=int(record.get("additions") or 0),
+                deletions=int(record.get("deletions") or 0),
+                changed_files=int(record.get("changedFiles") or len(files)),
+                files=files,
+                status="fetched",
+            )
+        )
+    return commits
+
+
+def _regenerate_legacy_draft(
+    *,
+    convex: ConvexGateway,
+    content_gen: ContentGenerator,
+    story_detector: StoryDetector,
+    commit_analyzer: CommitAnalyzer,
+    pending: dict[str, Any],
+    title: str,
+    body: str,
+    version_num: int,
+) -> tuple[str, str, int]:
+    if not ContentGenerator.is_legacy_draft(title, body):
+        return title, body, version_num
+
+    post_id = str(pending.get("postId"))
+    user_id = str(pending.get("userId"))
+    post = cast(
+        dict[str, Any] | None,
+        convex.client.query("posts:getById", {"postId": post_id}),
+    )
+    story_id = str(post.get("storyId")) if post else ""
+    story_data = cast(
+        dict[str, Any] | None,
+        (
+            convex.client.query("stories:getById", {"storyId": story_id})
+            if story_id
+            else None
+        ),
+    )
+    related_ids: Any = story_data.get("relatedCommitIds") if story_data else None
+    related_ids_list = cast(list[Any], related_ids) if isinstance(related_ids, list) else []
+    commit_ids: list[str] = [str(commit_id) for commit_id in related_ids_list]
+    commits = _normalized_commits_from_convex(convex.list_commits_by_ids(commit_ids))
+    if not commits:
+        logger.warning(
+            "Legacy draft %s has no commits available for regeneration", post_id
+        )
+        return title, body, version_num
+
+    analyses = [commit_analyzer.analyze(commit) for commit in commits]
+    story = story_detector.detect_story(commits, analyses)
+    preferences = convex.get_user_preferences(user_id)
+    regenerated = content_gen.generate_draft(story, preferences=preferences)
+    new_version_num = version_num + 1
+    new_version_id = convex.record_post_version(
+        post_id=post_id,
+        version=new_version_num,
+        title=regenerated.title,
+        body=regenerated.body,
+        generation_reason="Regenerated legacy draft with grounded repository context",
+    )
+    convex.update_approval_request(
+        approval_request_id=str(pending.get("_id")),
+        status="pending",
+        current_post_version_id=new_version_id,
+    )
+    convex.record_activity(
+        user_id=user_id,
+        type_="post.generation.completed",
+        label=f"Legacy draft regenerated as grounded V{new_version_num}",
+        status="completed",
+        metadata={"postId": post_id, "versionId": new_version_id},
+    )
+    return regenerated.title, regenerated.body, new_version_num
+
+
 def _deliver_queued_approval(
     *,
     convex: ConvexGateway,
     kapso_client: KapsoClient,
     pending: dict[str, Any],
     inbound: KapsoInboundMessage,
+    content_gen: ContentGenerator,
+    story_detector: StoryDetector,
+    commit_analyzer: CommitAnalyzer,
 ) -> None:
     req_id = str(pending.get("_id"))
     post_id = str(pending.get("postId"))
@@ -66,6 +183,16 @@ def _deliver_queued_approval(
     title = str(post_version.get("title") or "Historia técnica")
     body = str(post_version.get("body") or "")
     version_num = int(post_version.get("version", 1))
+    title, body, version_num = _regenerate_legacy_draft(
+        convex=convex,
+        content_gen=content_gen,
+        story_detector=story_detector,
+        commit_analyzer=commit_analyzer,
+        pending=pending,
+        title=title,
+        body=body,
+        version_num=version_num,
+    )
     outbound = kapso_client.send_draft_for_approval(
         to_phone=inbound.from_phone,
         story_title=title,
@@ -113,6 +240,8 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
 
     agent = ApprovalAgent(settings)
     content_gen = ContentGenerator(settings)
+    story_detector = StoryDetector(settings)
+    commit_analyzer = CommitAnalyzer(settings)
     image_generator = OpenAIImageGenerator(settings)
     publisher = LinkedInPublisher(settings)
     kapso_client = KapsoClient(settings)
@@ -147,6 +276,9 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 kapso_client=kapso_client,
                 pending=queued_request,
                 inbound=inbound,
+                content_gen=content_gen,
+                story_detector=story_detector,
+                commit_analyzer=commit_analyzer,
             )
         return
 
@@ -377,6 +509,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
             story=dummy_story,
             revision_feedback=decision.feedback or inbound.body,
             previous_draft=draft_body,
+            preferences=convex.get_user_preferences(user_id),
         )
 
         new_version_num = version_num + 1
