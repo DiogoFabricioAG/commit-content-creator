@@ -14,6 +14,7 @@ import type * as approvalRequests from "../approvalRequests.js";
 import type * as commitAnalyses from "../commitAnalyses.js";
 import type * as commits from "../commits.js";
 import type * as githubEvents from "../githubEvents.js";
+import type * as media from "../media.js";
 import type * as postVersions from "../postVersions.js";
 import type * as posts from "../posts.js";
 import type * as repositories from "../repositories.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   commitAnalyses: typeof commitAnalyses;
   commits: typeof commits;
   githubEvents: typeof githubEvents;
+  media: typeof media;
   postVersions: typeof postVersions;
   posts: typeof posts;
   repositories: typeof repositories;
