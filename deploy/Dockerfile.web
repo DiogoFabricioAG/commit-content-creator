@@ -33,4 +33,4 @@ COPY --from=build /app/apps/web ./apps/web
 WORKDIR /app/apps/web
 EXPOSE 3000
 
-CMD ["node", "/app/node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"]
+CMD ["node", "/app/apps/web/node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"]
