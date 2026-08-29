@@ -1,0 +1,35 @@
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@11.24.0 --activate
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/web/package.json apps/web/package.json
+COPY convex/package.json convex/package.json
+RUN pnpm install --frozen-lockfile
+
+COPY apps/web apps/web
+
+ARG NEXT_PUBLIC_CONVEX_URL=
+ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
+
+RUN pnpm --filter @proof-of-work/web build
+
+FROM node:22-alpine AS runtime
+
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000
+
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/web ./apps/web
+
+WORKDIR /app/apps/web
+EXPOSE 3000
+
+CMD ["node", "/app/node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"]

@@ -1,0 +1,25 @@
+laborin.meowlab.tech {
+    encode zstd gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), geolocation=(), microphone=()"
+    }
+
+    @backend path /health /webhooks/github /webhooks/github/* /auth/github/callback
+    handle @backend {
+        reverse_proxy laborin-backend:8000
+    }
+
+    handle {
+        reverse_proxy laborin-web:3000
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
