@@ -31,7 +31,7 @@ class LinkedInPublisher:
         token = decrypt_token(encrypted_access_token, self.settings.token_encryption_key)
         headers = {
             "Authorization": f"Bearer {token}",
-            "LinkedIn-Version": "202401",
+            "LinkedIn-Version": self.settings.linkedin_api_version,
             "X-Restli-Protocol-Version": "2.0.0",
             "Content-Type": "application/json",
         }

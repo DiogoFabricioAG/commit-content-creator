@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     linkedin_client_id: str | None = None
     linkedin_client_secret: str | None = None
     linkedin_redirect_uri: str = "http://localhost:8000/auth/linkedin/callback"
+    linkedin_api_version: str = "202608"
 
     token_encryption_key: str | None = None
     default_user_phone: str = "+51999888777"
