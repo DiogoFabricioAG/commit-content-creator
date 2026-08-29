@@ -23,7 +23,7 @@ export default function Home() {
               <p className="text-xs text-[var(--muted)]">Story intelligence para developers</p>
             </div>
           </div>
-          <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-medium text-amber-200">
+          <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 font-mono text-xs font-medium text-amber-200">
             Foundation
           </span>
         </header>
@@ -50,7 +50,7 @@ export default function Home() {
           <div className="rounded-3xl border border-[var(--line)] bg-white/[0.035] p-5 shadow-2xl shadow-black/20">
             <div className="flex items-start justify-between border-b border-[var(--line)] pb-5">
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Live pipeline</p>
+              <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Live pipeline</p>
                 <h2 className="mt-2 text-lg font-semibold">Primera rebanada vertical</h2>
               </div>
               <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-medium text-[var(--muted)]">

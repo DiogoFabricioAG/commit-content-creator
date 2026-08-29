@@ -74,6 +74,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** añadir queries/mutations Convex y el webhook GitHub de M1.
 
+### 2026-08-29 · Dirección visual del dashboard
+
+**Qué decidimos:** tratar el dashboard como una herramienta de evidencia, no como una landing genérica. La tesis ocupa el primer plano y el pipeline vertical muestra el orden real del producto.
+
+**Firma visual:** una columna de etapas conectadas, con estado honesto cuando todavía no hay datos. La tipografía editorial de la tesis contrasta con etiquetas monoespaciadas de sistema.
+
+**Evidencia:** la pantalla es responsive, tiene estados vacíos explícitos, foco visible en botones y no depende de datos simulados.
+
+**Momento de demo:** el juez entiende en segundos qué observa Proof of Work y en qué punto el humano conserva el control.
+
+**Siguiente paso:** conectar el estado real de Convex sin perder esta lectura clara del pipeline.
+
 ## Hitos que debemos registrar
 
 | Hito | Evidencia técnica | Momento narrativo |

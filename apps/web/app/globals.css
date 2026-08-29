@@ -31,3 +31,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+h1,
+h2 {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+button,
+span {
+  font-family: Arial, Helvetica, sans-serif;
+}
