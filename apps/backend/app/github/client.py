@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
@@ -31,13 +32,6 @@ class GitHubClient:
         if fixture_commit:
             return fixture_commit
 
-        if not self.settings.github_token:
-            # Use fallback metadata from push event payload if available
-            return self._build_from_metadata(
-                sha,
-                self._metadata_for_commit(sha, fallback_metadata),
-            )
-
         url = f"https://api.github.com/repos/{repository_full_name}/commits/{sha}"
         try:
             with httpx.Client(timeout=10.0) as client:
@@ -50,12 +44,12 @@ class GitHubClient:
                     raw_files = data.get("files", [])
 
                     files = normalize_commit_files(raw_files)
+                    committed_at = self._commit_timestamp(commit_data)
                     return NormalizedCommit(
                         sha=sha,
                         author=author_data.get("name") or "Developer",
                         message=commit_data.get("message") or "Update",
-                        committed_at=int(commit_data.get("committer", {}).get("date_timestamp", 0))
-                        or int(1000 * (Path(".")).stat().st_mtime),
+                        committed_at=committed_at or int(1000 * Path(".").stat().st_mtime),
                         additions=int(stats.get("additions", 0)),
                         deletions=int(stats.get("deletions", 0)),
                         changed_files=len(files),
@@ -69,6 +63,19 @@ class GitHubClient:
             sha,
             self._metadata_for_commit(sha, fallback_metadata),
         )
+
+    @staticmethod
+    def _commit_timestamp(commit_data: dict[str, Any]) -> int:
+        committer = commit_data.get("committer")
+        if not isinstance(committer, dict):
+            return 0
+        timestamp: Any = cast(dict[str, Any], committer).get("date")
+        if not isinstance(timestamp, str):
+            return 0
+        try:
+            return int(datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp() * 1000)
+        except ValueError:
+            return 0
 
     @staticmethod
     def _metadata_for_commit(
@@ -141,15 +148,22 @@ class GitHubClient:
             if isinstance(raw_name, str) and raw_name.strip():
                 author_name = raw_name.strip()
 
-        message = str(meta.get("message") or f"Commit {sha[:7]}").strip()
+        added_value: Any = meta.get("added", [])
+        modified_value: Any = meta.get("modified", [])
+        removed_value: Any = meta.get("removed", [])
+        added = cast(list[Any], added_value) if isinstance(added_value, list) else []
+        modified = (
+            cast(list[Any], modified_value) if isinstance(modified_value, list) else []
+        )
+        removed = cast(list[Any], removed_value) if isinstance(removed_value, list) else []
 
-        added = meta.get("added", [])
-        modified = meta.get("modified", [])
-        removed = meta.get("removed", [])
+        all_paths: list[Any] = list(dict.fromkeys([*added, *modified, *removed]))
+        raw_message = meta.get("message")
+        message = str(raw_message).strip() if raw_message else ""
+        if not message or re.fullmatch(r"commit\s+[0-9a-f]{7,}", message, re.IGNORECASE):
+            message = self._message_from_paths(all_paths)
 
-
-        all_paths = list(dict.fromkeys(added + modified + removed))
-        raw_files = [
+        raw_files: list[dict[str, Any]] = [
             {
                 "filename": path,
                 "status": (
@@ -183,3 +197,16 @@ class GitHubClient:
             files=files,
             status="fetched",
         )
+
+    @staticmethod
+    def _message_from_paths(paths: list[Any]) -> str:
+        clean_paths = [str(path) for path in paths if isinstance(path, str) and path.strip()]
+        if not clean_paths:
+            return "una actualización técnica"
+        if any(path.endswith((".md", ".mdx")) for path in clean_paths):
+            return "mejoras en la documentación"
+        if any(path.endswith((".ts", ".tsx", ".js", ".jsx")) for path in clean_paths):
+            return "mejoras en la experiencia web"
+        if any(path.endswith(".py") for path in clean_paths):
+            return "mejoras en el backend"
+        return f"cambios en {Path(clean_paths[0]).name}"

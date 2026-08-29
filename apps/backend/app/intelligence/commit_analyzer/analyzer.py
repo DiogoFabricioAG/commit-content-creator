@@ -168,7 +168,10 @@ class CommitAnalyzer:
             subject,
             flags=re.IGNORECASE,
         )
-        return subject.rstrip(".") or "una mejora técnica"
+        subject = subject.rstrip(".")
+        if re.fullmatch(r"commit\s+[0-9a-f]{7,}", subject, re.IGNORECASE):
+            return "una actualización técnica"
+        return subject or "una mejora técnica"
 
     @staticmethod
     def _scope_for_commit(commit: NormalizedCommit) -> str:

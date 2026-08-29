@@ -27,6 +27,24 @@ class StoryDetector:
                 relatedCommitShas=[],
             )
 
+        if all(
+            not commit.files
+            and (
+                re.fullmatch(r"commit\s+[0-9a-f]{7,}", commit.message, re.IGNORECASE)
+                or commit.message.strip().lower() == "una actualización técnica"
+            )
+            for commit in commits
+        ):
+            return StoryDetectionResult(
+                storyDetected=False,
+                confidence=0.0,
+                publishability=0.0,
+                storyType="build_log",
+                title="Sin contexto suficiente para publicar",
+                summary="No se encontraron el mensaje real ni archivos modificados del commit.",
+                relatedCommitShas=[commit.sha for commit in commits],
+            )
+
         # Check for multi-commit story progression (e.g. Polling -> WebSockets arc)
         messages = [c.message.lower() for c in commits]
         has_polling = any("poll" in m for m in messages)
@@ -40,16 +58,16 @@ class StoryDetector:
                 confidence=0.94,
                 publishability=0.92,
                 storyType="problem_solution",
-                title="Why we replaced polling with WebSockets",
-                summary="We started with notification polling, hit duplicate request issues, and migrated to real-time WebSockets.",
-                problem="Initial notification polling caused duplicate requests and excessive server roundtrips under high load.",
+                title="Cómo pasamos de polling a WebSockets",
+                summary="Empezamos con polling para las notificaciones, detectamos solicitudes duplicadas y migramos a eventos en tiempo real.",
+                problem="El polling inicial generaba solicitudes duplicadas y demasiados viajes al servidor.",
                 attempts=[
-                    "Built basic HTTP notification polling endpoint",
-                    "Added client-side deduplication guards",
+                    "Construimos un endpoint HTTP básico para consultar notificaciones",
+                    "Añadimos controles de deduplicación en el cliente",
                 ],
-                solution="Replaced polling mechanism entirely with bidirectional WebSocket events.",
-                learning="Polling is easy to start with, but event-driven WebSockets eliminate overhead and scale much cleaner.",
-                impact="Zero redundant polling traffic and instantaneous notification delivery.",
+                solution="Reemplazamos el polling por eventos bidireccionales con WebSockets.",
+                learning="El polling es fácil para empezar, pero los eventos reducen tráfico innecesario y escalan mejor.",
+                impact="Eliminamos el tráfico redundante de polling y habilitamos notificaciones instantáneas.",
                 relatedCommitShas=shas,
             )
 
@@ -58,18 +76,20 @@ class StoryDetector:
             title = f"Evolution of {commits[-1].files[0].path if commits[-1].files else 'system architecture'}"
             if analyses:
                 main_analysis = analyses[-1]
-                title = f"Engineering Log: {main_analysis.summary}"
-                problem = main_analysis.problem or "System needed iterative improvements"
-                solution = main_analysis.solution or f"Refactored across {len(commits)} commits"
+                title = f"Cómo construimos {main_analysis.summary}"
+                problem = main_analysis.problem or "El sistema necesitaba mejoras iterativas."
+                solution = main_analysis.solution or f"Reestructuramos el sistema en {len(commits)} commits."
                 learning = (
-                    f"Improved code quality and test coverage in {main_analysis.technologies}"
+                    f"Mejoramos la calidad del código con {', '.join(main_analysis.technologies)}."
+                    if main_analysis.technologies
+                    else "Las iteraciones pequeñas permiten validar el sistema sin perder contexto."
                 )
                 impact = main_analysis.impact
             else:
-                problem = "Technical enhancements required"
-                solution = f"Delivered updates across {len(commits)} commits"
-                learning = "Iterative refactoring improves maintainability"
-                impact = f"{sum(c.additions for c in commits)} lines added"
+                problem = "El sistema necesitaba mejoras técnicas."
+                solution = f"Entregamos los cambios en {len(commits)} commits."
+                learning = "Las iteraciones ayudan a mantener el contexto y la mantenibilidad."
+                impact = f"Se incorporaron {sum(c.additions for c in commits)} líneas nuevas."
 
             return StoryDetectionResult(
                 storyDetected=True,
@@ -77,7 +97,7 @@ class StoryDetector:
                 publishability=0.85,
                 storyType="build_log",
                 title=title,
-                summary=f"Iterative improvements delivered across {len(commits)} commits.",
+                summary=f"Construimos una mejora iterativa a lo largo de {len(commits)} commits.",
                 problem=problem,
                 attempts=[c.message for c in commits[:-1]],
                 solution=solution,
@@ -117,7 +137,7 @@ class StoryDetector:
             ),
             impact=analysis.impact
             if analysis
-            else f"+{single_commit.additions}/-{single_commit.deletions} lines changed",
+            else f"El cambio afectó {single_commit.changed_files} archivo(s) (+{single_commit.additions}/-{single_commit.deletions}).",
             relatedCommitShas=[single_commit.sha],
         )
 
@@ -136,7 +156,10 @@ class StoryDetector:
             subject,
             flags=re.IGNORECASE,
         )
-        return subject.rstrip(".") or "una mejora técnica"
+        subject = subject.rstrip(".")
+        if re.fullmatch(r"commit\s+[0-9a-f]{7,}", subject, re.IGNORECASE):
+            return "una actualización técnica"
+        return subject or "una mejora técnica"
 
     @staticmethod
     def _title_prefix(story_type: str, message: str) -> str:

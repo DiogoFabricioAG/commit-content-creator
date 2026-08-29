@@ -67,3 +67,17 @@ def test_legacy_draft_is_detected_before_delivery() -> None:
         "Cómo añadimos una sesión de GitHub",
         "El reto:\nEl producto necesitaba una sesión de GitHub.",
     )
+
+
+def test_missing_commit_metadata_does_not_turn_sha_into_a_story() -> None:
+    settings = Settings(app_env="test")
+    commit = GitHubClient(settings).fetch_commit(
+        "owner/repo",
+        "8813e7f8829d9cb5f2da5e94bedfb9293bc30e0a",
+        {"message": "Commit 8813e7f", "added": [], "modified": [], "removed": []},
+    )
+    analysis = CommitAnalyzer(settings).analyze(commit)
+    story = StoryDetector(settings).detect_story([commit], [analysis])
+
+    assert commit.message == "una actualización técnica"
+    assert story.story_detected is False

@@ -1,10 +1,20 @@
 import json
 import re
+from typing import Literal
 
 from app.config import Settings
 from app.schemas.content import LinkedInDraftResult
 from app.schemas.preferences import EditorialPreferences
 from app.schemas.story import StoryDetectionResult
+
+ContentFormat = Literal[
+    "problem_solution",
+    "before_after",
+    "build_log",
+    "architecture_breakdown",
+    "failure_story",
+    "mini_case_study",
+]
 
 
 class ContentGenerator:
@@ -41,6 +51,7 @@ class ContentGenerator:
                 content,
                 re.IGNORECASE,
             )
+            or re.search(r"\bcommit\s+[0-9a-f]{7,}\b", content, re.IGNORECASE)
             or "feature or capability needed by users" in content.lower()
             or "implemented commit" in content.lower()
             or bool(re.search(r"modified\s+0\s+files", content, re.IGNORECASE))
@@ -63,6 +74,7 @@ class ContentGenerator:
             f"Target Audience: {preferences.target_audience}\n"
             f"Technical Level: {preferences.technical_level}\n"
             f"Post Length: {preferences.post_length}\n"
+            f"Allowed Formats: {', '.join(preferences.allowed_formats)}\n"
             f"Avoid Words: {', '.join(preferences.avoid_words)}\n"
             f"Preferred CTA: {preferences.preferred_cta}\n"
             f"Hashtags: {' '.join(preferences.hashtags)}\n\n"
@@ -91,7 +103,7 @@ class ContentGenerator:
                         "- Evidence before content: never invent benchmarks, numbers, or fake users.\n"
                         f"- Tone: {preferences.tone}. Technical Level: {preferences.technical_level}.\n"
                         f"- Never use these buzzwords: {', '.join(preferences.avoid_words)}.\n"
-                        "- Format: Problem -> Solution or Before / After.\n"
+                        "- Choose the most natural format from the allowed formats: mini_case_study, build_log, before_after, architecture_breakdown, failure_story, or problem_solution.\n"
                         "- The title must describe the technical outcome, never just a SHA or 'Shipping: Commit ...'.\n"
                         "- Use concrete repository evidence; do not invent metrics, users, integrations, or outcomes.\n"
                         "- Return JSON with keys: title, body, format, format_rationale, grounded_claims."
@@ -122,6 +134,7 @@ class ContentGenerator:
         )
 
         hashtags_str = " ".join(preferences.hashtags) if preferences.hashtags else "#SoftwareEngineering #ProofOfWork"
+        format_name = self._select_format(story, preferences)
 
         cta_str = ""
         if preferences.preferred_cta == "discussion_question":
@@ -147,36 +160,102 @@ class ContentGenerator:
             return LinkedInDraftResult(
                 title=story.title,
                 body=body,
-                format="problem_solution",
-                format_rationale="Versión compacta y directa ajustada a las preferencias editoriales.",
+                format=format_name,
+                format_rationale=self._format_rationale(format_name),
                 grounded_claims=self._grounded_claims(story),
             )
 
-        # Standard draft
+        # Standard draft: each option follows one of the narrative shapes used
+        # in the demo examples, while keeping every claim grounded in the story.
         attempts = ""
         if story.attempts:
             attempts = "Cómo llegamos:\n" + "\n".join(
                 f"• {attempt}" for attempt in story.attempts[:5]
             ) + "\n\n"
-        body = (
-            f"🚀 {story.title}\n\n"
-            f"{story.summary}\n\n"
-            f"El reto:\n{story.problem or 'Resolver una necesidad concreta del producto.'}\n\n"
-            f"{attempts}"
-            f"Qué hicimos:\n{story.solution or 'Aplicamos el cambio y lo dejamos listo para validación.'}\n\n"
-            f"Resultado:\n{story.impact or 'El cambio quedó incorporado al proyecto.'}\n\n"
-            f"Aprendizaje clave:\n{story.learning or 'La evidencia concreta hace que una historia técnica sea entendible.'}\n\n"
-            f"{cta_str}"
-            f"{hashtags_str}"
-        )
+        problem = story.problem or "Resolver una necesidad concreta del producto."
+        solution = story.solution or "Aplicamos el cambio y lo dejamos listo para validación."
+        impact = story.impact or "El cambio quedó incorporado al proyecto."
+        learning = story.learning or "La evidencia concreta hace que una historia técnica sea entendible."
+
+        if format_name == "before_after":
+            narrative = (
+                f"Antes:\n{problem}\n\n"
+                f"La decisión:\n{solution}\n\n"
+                f"Después:\n{impact}"
+            )
+        elif format_name == "architecture_breakdown":
+            narrative = (
+                f"El cambio de arquitectura:\n{story.summary}\n\n"
+                f"Qué estaba fallando:\n{problem}\n\n"
+                f"Cómo lo resolvimos:\n{solution}\n\n"
+                f"Qué aprendimos:\n{learning}\n\n"
+                f"Resultado:\n{impact}"
+            )
+        elif format_name == "build_log":
+            narrative = (
+                f"{story.summary}\n\n"
+                f"El reto:\n{problem}\n\n"
+                f"{attempts}"
+                f"La implementación:\n{solution}\n\n"
+                f"Qué cambió:\n{impact}\n\n"
+                f"Lo que nos llevamos:\n{learning}"
+            )
+        elif format_name == "failure_story":
+            narrative = (
+                f"El punto de partida:\n{problem}\n\n"
+                f"Lo que intentamos:\n{attempts or solution}\n\n"
+                f"La corrección:\n{solution}\n\n"
+                f"La lección:\n{learning}\n\n"
+                f"Resultado:\n{impact}"
+            )
+        else:
+            narrative = (
+                f"{story.summary}\n\n"
+                f"El problema:\n{problem}\n\n"
+                f"La solución:\n{solution}\n\n"
+                f"Qué cambió:\n{impact}\n\n"
+                f"Lo que aprendimos:\n{learning}"
+            )
+
+        body = f"{story.title}\n\n{narrative}\n\n{cta_str}{hashtags_str}"
 
         return LinkedInDraftResult(
             title=story.title,
             body=body,
-            format="problem_solution",
-            format_rationale="El formato Problem -> Solution resalta el trade-off técnico y el aprendizaje.",
+            format=format_name,
+            format_rationale=self._format_rationale(format_name),
             grounded_claims=self._grounded_claims(story),
         )
+
+    @staticmethod
+    def _select_format(
+        story: StoryDetectionResult,
+        preferences: EditorialPreferences,
+    ) -> ContentFormat:
+        candidates: dict[str, ContentFormat] = {
+            "architecture_shift": "architecture_breakdown",
+            "failure_learning": "failure_story",
+            "build_log": "build_log",
+            "before_after": "before_after",
+        }
+        preferred = candidates.get(story.story_type, "mini_case_study")
+        allowed = set(preferences.allowed_formats)
+        if preferred in allowed:
+            return preferred
+        for fallback in ("mini_case_study", "problem_solution", "build_log"):
+            if fallback in allowed:
+                return fallback
+        return "problem_solution"
+
+    @staticmethod
+    def _format_rationale(format_name: ContentFormat) -> str:
+        return {
+            "before_after": "El formato Antes / Después hace visible el cambio y su resultado.",
+            "build_log": "El build log cuenta el recorrido desde el reto hasta la implementación.",
+            "architecture_breakdown": "El desglose de arquitectura explica la decisión y sus consecuencias.",
+            "failure_story": "La historia de aprendizaje muestra el problema, la corrección y la lección.",
+            "mini_case_study": "El mini caso conecta contexto, decisión, resultado y aprendizaje.",
+        }.get(format_name, "El formato Problema / Solución resume el cambio con evidencia concreta.")
 
     @staticmethod
     def _grounded_claims(story: StoryDetectionResult) -> list[str]:

@@ -1,11 +1,13 @@
 import json
 import logging
+import re
 import unicodedata
 from typing import Any, cast
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 
 from app.config import get_settings
+from app.github.client import GitHubClient
 from app.integrations.convex_client import ConvexGateway
 from app.intelligence.approval_agent.agent import ApprovalAgent
 from app.intelligence.commit_analyzer.analyzer import CommitAnalyzer
@@ -100,6 +102,7 @@ def _regenerate_legacy_draft(
     content_gen: ContentGenerator,
     story_detector: StoryDetector,
     commit_analyzer: CommitAnalyzer,
+    github_client: GitHubClient,
     pending: dict[str, Any],
     title: str,
     body: str,
@@ -126,7 +129,33 @@ def _regenerate_legacy_draft(
     related_ids: Any = story_data.get("relatedCommitIds") if story_data else None
     related_ids_list = cast(list[Any], related_ids) if isinstance(related_ids, list) else []
     commit_ids: list[str] = [str(commit_id) for commit_id in related_ids_list]
-    commits = _normalized_commits_from_convex(convex.list_commits_by_ids(commit_ids))
+    commit_records = convex.list_commits_by_ids(commit_ids)
+    commits = _normalized_commits_from_convex(commit_records)
+    repository_id = str(story_data.get("repositoryId")) if story_data else ""
+    repository = (
+        cast(
+            dict[str, Any] | None,
+            convex.client.query("repositories:getById", {"repositoryId": repository_id}),
+        )
+        if repository_id
+        else None
+    )
+    repository_full_name = str(repository.get("fullName")) if repository else ""
+    if repository_full_name:
+        refreshed_commits: list[NormalizedCommit] = []
+        for index, record in enumerate(commit_records):
+            sha = str(record.get("sha") or "")
+            if not sha:
+                continue
+            refreshed = github_client.fetch_commit(repository_full_name, sha)
+            if refreshed.files or not re.fullmatch(
+                r"commit\s+[0-9a-f]{7,}", refreshed.message, re.IGNORECASE
+            ):
+                refreshed_commits.append(refreshed)
+            elif index < len(commits):
+                refreshed_commits.append(commits[index])
+        if refreshed_commits:
+            commits = refreshed_commits
     if not commits:
         logger.warning(
             "Legacy draft %s has no commits available for regeneration", post_id
@@ -169,6 +198,7 @@ def _deliver_queued_approval(
     content_gen: ContentGenerator,
     story_detector: StoryDetector,
     commit_analyzer: CommitAnalyzer,
+    github_client: GitHubClient,
 ) -> None:
     req_id = str(pending.get("_id"))
     post_id = str(pending.get("postId"))
@@ -188,6 +218,7 @@ def _deliver_queued_approval(
         content_gen=content_gen,
         story_detector=story_detector,
         commit_analyzer=commit_analyzer,
+        github_client=github_client,
         pending=pending,
         title=title,
         body=body,
@@ -242,6 +273,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     content_gen = ContentGenerator(settings)
     story_detector = StoryDetector(settings)
     commit_analyzer = CommitAnalyzer(settings)
+    github_client = GitHubClient(settings)
     image_generator = OpenAIImageGenerator(settings)
     publisher = LinkedInPublisher(settings)
     kapso_client = KapsoClient(settings)
@@ -289,6 +321,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
             content_gen=content_gen,
             story_detector=story_detector,
             commit_analyzer=commit_analyzer,
+            github_client=github_client,
         )
         recovered_legacy = True
 
@@ -307,6 +340,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 content_gen=content_gen,
                 story_detector=story_detector,
                 commit_analyzer=commit_analyzer,
+                github_client=github_client,
             )
         return
     if recovered_legacy:
@@ -329,6 +363,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         content_gen=content_gen,
         story_detector=story_detector,
         commit_analyzer=commit_analyzer,
+        github_client=github_client,
         pending=pending,
         title=latest_title,
         body=str(draft_body or ""),

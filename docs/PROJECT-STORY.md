@@ -286,6 +286,8 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **La segunda capa de protección:** algunos borradores antiguos ya habían quedado guardados en Convex antes de corregir el generador. Al abrirse la ventana de WhatsApp, la cola los enviaba literalmente. Añadimos detección de plantillas heredadas y regeneración basada en los commits reales antes de entregar cualquier borrador pendiente; así una corrección de formato también protege la experiencia de los mensajes que ya estaban en cola.
 
+**El caso `8813e7f`:** descubrimos una tercera variante del problema. Cuando el backend no tenía un token de GitHub, evitaba consultar la API incluso para repositorios públicos. Si el evento no incluía el detalle del commit, inventaba `Commit 8813e7f` como mensaje. Ahora intenta recuperar el commit desde GitHub con o sin token, elimina los fallbacks basados en SHA y descarta historias sin evidencia suficiente.
+
 **Qué corregimos:** el procesador ahora identifica el commit exacto dentro de `commits[]`/`head_commit`, conserva mensaje, autor, archivos y timestamp, y el analizador deriva problema, solución, alcance, tecnologías e impacto desde esa evidencia. El redactor evita títulos basados solo en SHA y ya no inserta claims fijos de WebSockets o base de datos en historias ajenas.
 
 **Evidencia:** se añadieron pruebas de fallback del payload de GitHub y de una historia legible para un commit de autenticación; `pnpm check` debe conservar este contrato antes del siguiente despliegue.
