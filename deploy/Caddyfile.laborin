@@ -9,10 +9,11 @@ laborin.meowlab.tech {
         Permissions-Policy "camera=(), geolocation=(), microphone=()"
     }
 
-    @backend path /health /webhooks/github /webhooks/github/* /auth/github/callback
+    @backend path /health /webhooks/* /auth/* /api/*
     handle @backend {
         reverse_proxy laborin-backend:8000
     }
+
 
     handle {
         reverse_proxy laborin-web:3000
