@@ -72,10 +72,11 @@ def test_legacy_draft_is_detected_before_delivery() -> None:
 def test_missing_commit_metadata_does_not_turn_sha_into_a_story() -> None:
     settings = Settings(app_env="test")
     commit = GitHubClient(settings).fetch_commit(
-        "owner/repo",
-        "8813e7f8829d9cb5f2da5e94bedfb9293bc30e0a",
-        {"message": "Commit 8813e7f", "added": [], "modified": [], "removed": []},
+        repository_full_name="owner/repo",
+        sha="8813e7f8829d9cb5f2da5e94bedfb9293bc30e0a",
+        fallback_metadata={"message": "Commit 8813e7f", "added": [], "modified": [], "removed": []},
     )
+
     analysis = CommitAnalyzer(settings).analyze(commit)
     story = StoryDetector(settings).detect_story([commit], [analysis])
 

@@ -69,13 +69,15 @@ class GitHubClient:
         committer = commit_data.get("committer")
         if not isinstance(committer, dict):
             return 0
-        timestamp: Any = cast(dict[str, Any], committer).get("date")
+        committer_dict = cast(dict[str, Any], committer)
+        timestamp = committer_dict.get("date")
         if not isinstance(timestamp, str):
             return 0
         try:
             return int(datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp() * 1000)
         except ValueError:
             return 0
+
 
     @staticmethod
     def _metadata_for_commit(

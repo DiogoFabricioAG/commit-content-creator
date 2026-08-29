@@ -203,10 +203,25 @@ function LoginContent() {
                     />
                   </div>
                 </div>
+
+                <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-950/30 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <p className="text-[11px] text-emerald-200">
+                    👉 <strong>Validación inicial:</strong> Háblale a nuestro bot para abrir la sesión de 24h:
+                  </p>
+                  <a
+                    href="https://wa.me/12084415504?text=Hola%20LaborIN,%20quiero%20activar%20mi%20cuenta"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-400 px-3 py-1.5 text-xs font-bold text-black hover:bg-emerald-300 transition shrink-0"
+                  >
+                    Hablar al +1 (208) 441-5504
+                  </a>
+                </div>
               </div>
 
               {/* Channels 2 & 3: GitHub & LinkedIn in side-by-side grid */}
               <div className="grid gap-4 sm:grid-cols-2">
+
                 {/* GitHub Card */}
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between">
                   <div>

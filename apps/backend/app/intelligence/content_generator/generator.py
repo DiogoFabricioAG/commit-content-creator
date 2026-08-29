@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Literal
+from typing import Literal, cast
 
 from app.config import Settings
 from app.schemas.content import LinkedInDraftResult
@@ -238,14 +238,15 @@ class ContentGenerator:
             "build_log": "build_log",
             "before_after": "before_after",
         }
-        preferred = candidates.get(story.story_type, "mini_case_study")
+        preferred: ContentFormat = candidates.get(story.story_type, "mini_case_study")
         allowed = set(preferences.allowed_formats)
         if preferred in allowed:
             return preferred
         for fallback in ("mini_case_study", "problem_solution", "build_log"):
             if fallback in allowed:
-                return fallback
+                return cast(ContentFormat, fallback)
         return "problem_solution"
+
 
     @staticmethod
     def _format_rationale(format_name: ContentFormat) -> str:

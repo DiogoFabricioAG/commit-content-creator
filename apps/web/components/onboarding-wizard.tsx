@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   FileText,
   Layers,
+  MessageSquare,
   Phone,
   ShieldAlert,
   User,
@@ -516,29 +517,46 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
               <p className="mt-3 text-emerald-400 font-semibold">{hashtags.join(" ")}</p>
             </div>
 
-            {/* Approval Workflow Note */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
-                  <Phone className="size-4" />
+            {/* Approval Workflow Note & Mandatory Bot Button */}
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                    <Phone className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-white">Validación de Aprobación por WhatsApp</p>
+                    <p className="text-[11px] text-zinc-400">
+                      Debes hablarle primero al bot oficial para abrir la ventana de 24h y recibir borradores.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-white">Aprobación Humana en WhatsApp</p>
-                  <p className="text-[11px] text-zinc-400">
-                    Cada historia generada se te enviará primero a WhatsApp para tu visto bueno.
-                  </p>
-                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoPublish}
+                    onChange={(e) => setOverrideAutoPublish(e.target.checked)}
+                    className="rounded bg-black/50 border-white/20 text-emerald-500 focus:ring-0 size-4"
+                  />
+                  <span className="text-xs text-zinc-300">Auto-publicar</span>
+                </label>
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoPublish}
-                  onChange={(e) => setOverrideAutoPublish(e.target.checked)}
-                  className="rounded bg-black/50 border-white/20 text-emerald-500 focus:ring-0 size-4"
-                />
-                <span className="text-xs text-zinc-300">Auto-publicar</span>
-              </label>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-emerald-500/20">
+                <p className="text-[11px] text-emerald-300">
+                  Bot oficial de LaborIN: <strong>+1 (208) 441-5504</strong>
+                </p>
+                <a
+                  href="https://wa.me/12084415504?text=Hola%20LaborIN,%20quiero%20activar%20mi%20cuenta"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-400 px-3.5 py-2 text-xs font-bold text-black hover:bg-emerald-300 transition shrink-0 shadow-sm"
+                >
+                  <MessageSquare className="size-3.5" />
+                  Hablar al +1 (208) 441-5504 para Iniciar Validación
+                </a>
+              </div>
             </div>
           </div>
         )}

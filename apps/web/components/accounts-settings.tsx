@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ExternalLink,
   GitBranch,
+  MessageSquare,
   Phone,
   Plus,
   Radio,
@@ -123,7 +124,7 @@ export function AccountsSettings({ userId }: AccountsSettingsProps) {
       {/* 3 Channels Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* 1. WHATSAPP CHANNEL */}
-        <div className="rounded-3xl border border-white/10 bg-[#09090b]/90 p-5 sm:p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+        <div className="rounded-3xl border border-emerald-500/30 bg-[#09090b]/90 p-5 sm:p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
               <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400">
@@ -146,9 +147,25 @@ export function AccountsSettings({ userId }: AccountsSettingsProps) {
               Número donde recibes los borradores generados para aprobar o solicitar revisiones con IA.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.02] p-3.5">
+            {/* MANDATORY VALIDATION BOT BUTTON */}
+            <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-950/30 p-3.5 space-y-2.5">
+              <p className="text-[11px] text-emerald-200 leading-snug">
+                👉 <strong>Paso obligatorio de validación:</strong> Debes enviarle un primer mensaje a nuestro bot para abrir la sesión de 24h.
+              </p>
+              <a
+                href="https://wa.me/12084415504?text=Hola%20LaborIN,%20quiero%20activar%20mi%20cuenta"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-3.5 py-2.5 text-xs font-bold text-black hover:bg-emerald-300 transition shadow-lg shadow-emerald-400/20"
+              >
+                <MessageSquare className="size-4" />
+                Hablar al +1 (208) 441-5504
+              </a>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-3.5">
               <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 block">
-                Número Registrado
+                Tu Número Registrado
               </span>
               <p className="font-mono text-sm font-semibold text-emerald-300 mt-0.5">
                 {user?.whatsappPhone || "Sin número registrado"}
@@ -218,7 +235,7 @@ export function AccountsSettings({ userId }: AccountsSettingsProps) {
                 }}
                 className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/5 px-3 py-2.5 text-xs font-semibold text-white hover:bg-white/10 transition"
               >
-                Modificar número o nombre
+                Modificar mi número o nombre
               </button>
             )}
           </div>
