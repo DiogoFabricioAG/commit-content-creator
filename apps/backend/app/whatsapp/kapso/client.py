@@ -6,11 +6,15 @@ from app.schemas.kapso import KapsoOutboundMessage
 class KapsoClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.base_url = "https://api.kapso.ai/v1"
+        self.base_url = "https://api.kapso.ai/meta/whatsapp"
 
     def send_message(self, to_phone: str, body: str) -> KapsoOutboundMessage:
-        # In demo / test mode or when no API key is configured, return safe simulated message
-        if not self.settings.kapso_api_key or self.settings.demo_mode:
+        # In demo / test mode or when live credentials are incomplete, return a safe simulation.
+        if (
+            not self.settings.kapso_api_key
+            or not self.settings.kapso_phone_number_id
+            or self.settings.demo_mode
+        ):
             msg_id = f"kapso_sim_{abs(hash(to_phone + body))}"
             return KapsoOutboundMessage(
                 to_phone=to_phone,
@@ -19,11 +23,12 @@ class KapsoClient:
             )
 
         headers = {
-            "Authorization": f"Bearer {self.settings.kapso_api_key}",
+            "X-API-Key": self.settings.kapso_api_key,
             "Content-Type": "application/json",
         }
         payload = {
-            "phone_number_id": self.settings.kapso_phone_number_id,
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
             "to": to_phone,
             "type": "text",
             "text": {"body": body},
@@ -31,16 +36,18 @@ class KapsoClient:
 
         with httpx.Client(timeout=10.0) as client:
             response = client.post(
-                f"{self.base_url}/messages",
+                f"{self.base_url}/v24.0/{self.settings.kapso_phone_number_id}/messages",
                 headers=headers,
                 json=payload,
             )
             response.raise_for_status()
             data = response.json()
+            messages = data.get("messages", [])
+            message_id = messages[0].get("id") if messages else data.get("id")
             return KapsoOutboundMessage(
                 to_phone=to_phone,
                 body=body,
-                message_id=data.get("id"),
+                message_id=message_id,
             )
 
     def send_draft_for_approval(
