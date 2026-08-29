@@ -77,7 +77,23 @@ unset GITHUB_WEBHOOK_SECRET
 
 docker compose --env-file "$env_file" -f "$compose_file" up -d --no-deps --force-recreate backend
 docker compose --env-file "$env_file" -f "$compose_file" ps backend
-curl -fsS https://laborin.meowlab.tech/health
+
+healthy=""
+for attempt in $(seq 1 20); do
+  healthy="$(docker inspect --format '{{.State.Health.Status}}' laborin-backend 2>/dev/null || true)"
+  if [ "$healthy" = "healthy" ]; then
+    break
+  fi
+  sleep 2
+done
+
+if [ "$healthy" != "healthy" ]; then
+  echo "laborin-backend no llegó a estado healthy." >&2
+  docker logs --tail 80 laborin-backend >&2 || true
+  exit 1
+fi
+
+curl --fail --silent --show-error --retry 5 --retry-delay 1 --retry-connrefused https://laborin.meowlab.tech/health
 printf '\nWebhook secret actualizado y backend reiniciado.\n'
 '@
     $remoteCommand = $remoteCommand.Replace("__REMOTE_DIR__", $remoteDirQuoted)
