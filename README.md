@@ -53,3 +53,9 @@ El smoke test escribe un evento fixture en el deployment de desarrollo, repite l
 ## Seguridad local
 
 El bootstrap no activa GitHub, OpenAI, Kapso ni LinkedIn. Los fixtures son locales y no publican ni envían mensajes. No guardar secretos en el repositorio ni en variables NEXT_PUBLIC_*.
+
+## Interview Coach
+
+Segundo módulo de LaborIN, construido por el equipo en este hackathon: entrevistas de práctica con evaluación STAR en tiempo real.
+
+Repo: https://github.com/el-informatico/theNextCraft
