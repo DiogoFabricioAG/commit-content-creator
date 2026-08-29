@@ -31,13 +31,18 @@ export const record = mutation({
 export const getPendingForPhone = query({
   args: { recipientPhone: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const requests = await ctx.db
       .query("approvalRequests")
       .withIndex("by_phone_status", (q) =>
         q.eq("recipientPhone", args.recipientPhone).eq("status", "pending"),
       )
-      .order("desc")
-      .first();
+      .collect();
+
+    return requests.reduce<(typeof requests)[number] | null>(
+      (latest, current) =>
+        !latest || current.createdAt > latest.createdAt ? current : latest,
+      null,
+    );
   },
 });
 
