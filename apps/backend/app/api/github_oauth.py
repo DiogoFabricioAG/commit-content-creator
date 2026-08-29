@@ -44,24 +44,35 @@ async def github_callback(
     settings = get_settings()
     convex = ConvexGateway(settings)
 
-    redirect_target = "https://laborin.meowlab.tech/dashboard?tab=onboarding&status=github_connected"
+    base_url = "https://laborin.meowlab.tech"
     if settings.app_env != "production" and "localhost" in settings.linkedin_redirect_uri:
-        redirect_target = "http://localhost:3000/dashboard?tab=onboarding&status=github_connected"
+        base_url = "http://localhost:3000"
+
+    user_id = None
+    if convex.is_configured:
+        user_id = convex.get_or_create_default_user()
 
     # If installed via GitHub App
     if installation_id and not code:
-        if convex.is_configured:
-            user_id = convex.get_or_create_default_user()
+        if convex.is_configured and user_id:
             convex.record_activity(
                 user_id=user_id,
                 type_="github.app.installed",
                 label=f"GitHub App installed with ID {installation_id}",
                 status="completed",
             )
-        return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+        user_param = f"&userId={user_id}" if user_id else ""
+        return RedirectResponse(
+            url=f"{base_url}/dashboard?tab=onboarding&status=github_connected{user_param}",
+            status_code=status.HTTP_302_FOUND,
+        )
 
     if not code:
-        return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+        user_param = f"&userId={user_id}" if user_id else ""
+        return RedirectResponse(
+            url=f"{base_url}/dashboard?tab=onboarding&status=github_connected{user_param}",
+            status_code=status.HTTP_302_FOUND,
+        )
 
     # Exchange code for access token if client credentials exist
     access_token = None
@@ -83,7 +94,7 @@ async def github_callback(
         except Exception:
             pass
 
-    if access_token and convex.is_configured:
+    if access_token and convex.is_configured and user_id:
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 # Fetch user profile
@@ -97,7 +108,6 @@ async def github_callback(
                 )
                 if user_res.status_code == 200:
                     gh_user = user_res.json()
-                    user_id = convex.get_or_create_default_user()
                     # Sync repositories
                     repos_res = await client.get(
                         "https://api.github.com/user/repos?per_page=30&sort=updated",
@@ -128,4 +138,9 @@ async def github_callback(
         except Exception:
             pass
 
-    return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+    user_param = f"&userId={user_id}" if user_id else ""
+    return RedirectResponse(
+        url=f"{base_url}/dashboard?tab=onboarding&status=github_connected{user_param}",
+        status_code=status.HTTP_302_FOUND,
+    )
+

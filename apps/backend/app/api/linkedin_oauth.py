@@ -38,6 +38,7 @@ async def linkedin_callback(
             detail=f"LinkedIn token exchange failed: {error}",
         ) from error
 
+    user_id = None
     if convex.is_configured:
         user_id = convex.get_or_create_default_user()
         encrypted_token = encrypt_token(
@@ -62,9 +63,13 @@ async def linkedin_callback(
             status="completed",
         )
 
-    redirect_target = "https://laborin.meowlab.tech/dashboard?tab=onboarding&status=linkedin_connected"
+    base_url = "https://laborin.meowlab.tech"
     if settings.app_env != "production" and "localhost" in settings.linkedin_redirect_uri:
-        redirect_target = "http://localhost:3000/dashboard?tab=onboarding&status=linkedin_connected"
+        base_url = "http://localhost:3000"
+
+    user_param = f"&userId={user_id}" if user_id else ""
+    redirect_target = f"{base_url}/dashboard?tab=onboarding&status=linkedin_connected{user_param}"
 
     return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+
 
