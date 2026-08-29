@@ -37,7 +37,9 @@ Debe existir una base funcional para que Milestone 1 pueda recibir un webhook de
 - Story detection, aprobación natural y publicación.
 - Autenticación multiusuario, RBAC, billing o despliegue productivo.
 
-## Estado de entrada
+## Estado inicial registrado
+
+Este bloque conserva el punto de partida previo al bootstrap. No debe leerse como el estado actual del repositorio.
 
 - [ ] No hay estructura de monorepo.
 - [ ] No existe `package.json`, `pnpm-workspace.yaml` ni `pyproject.toml`.
@@ -45,7 +47,16 @@ Debe existir una base funcional para que Milestone 1 pueda recibir un webhook de
 - [ ] No existe frontend ni backend.
 - [ ] No existe control de versiones Git local.
 
-El último punto es un bloqueo operativo para ramas y PRs, no una razón para inventar un flujo Git paralelo. La persona responsable del bootstrap debe inicializarlo o confirmar dónde estará el remoto antes de repartir trabajo en ramas.
+El último punto fue un bloqueo operativo para ramas y PRs y quedó resuelto al inicializar `main` y conectar `origin` con el repositorio de GitHub.
+
+## Estado actual
+
+- [x] M0-01 Bootstrap del workspace.
+- [x] M0-02 Esqueleto Web.
+- [x] M0-03 Esqueleto FastAPI.
+- [ ] M0-04 Modelo Convex inicial: schema listo; funciones pendientes.
+- [x] M0-05 Contratos y configuración.
+- [ ] M0-06 Quality gate y fixture local: integración pendiente.
 
 ## Desglose delegable
 

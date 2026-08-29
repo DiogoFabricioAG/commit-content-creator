@@ -1,6 +1,8 @@
 # Tablero de trabajo
 
-Este tablero es la lista operativa para delegar trabajo. El estado inicial refleja que el repositorio aún no tiene bootstrap técnico.
+Este tablero es la lista operativa para delegar trabajo. El estado actual refleja que el bootstrap base está publicado y que M0-04/M0-06 siguen disponibles.
+
+Milestone remoto: [M0 - Foundation](https://github.com/DiogoFabricioAG/commit-content-creator/milestone/1).
 
 ## Estados
 

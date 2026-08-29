@@ -14,11 +14,13 @@ La especificación funcional completa sigue siendo [_MConverter.eu_Proof_of_Work
 
 ## Estado actual
 
-**Fase:** preparación de Milestone 0.
+**Fase:** Milestone 0 en construcción; M1-01 iniciado.
 
-**Realidad del proyecto al 29 de agosto de 2026:** existe el prompt maestro y esta primera documentación; todavía no hay código funcional, configuración de pnpm/uv, esquema Convex, tests ni repositorio Git inicializado.
+**Realidad del proyecto al 29 de agosto de 2026:** ya existe bootstrap reproducible, Web arrancable, backend FastAPI con health, esquema Convex inicial, fixture local y repositorio Git conectado a GitHub.
 
-**Consecuencia:** el primer encargo es bootstrap técnico. No se deben delegar todavía tareas de inteligencia, OAuth o publicación como si existieran contratos implementados.
+**Consecuencia:** `M0-01`, `M0-02`, `M0-03` y `M0-05` están listos. `M0-04` necesita sus funciones Convex y `M0-06` debe integrar el smoke test antes de abrir inteligencia, OAuth o publicación.
+
+El tablero tiene un espejo remoto en el [milestone M0 - Foundation de GitHub](https://github.com/DiogoFabricioAG/commit-content-creator/milestone/1), con una issue por tarea delegable.
 
 ## Cómo usar esta documentación
 

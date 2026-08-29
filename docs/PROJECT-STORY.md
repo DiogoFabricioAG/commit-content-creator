@@ -22,17 +22,17 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Decisión:** avanzar por rebanadas verticales. La primera es GitHub → FastAPI → Convex → dashboard reactivo.
 
-**Evidencia:** documentación versionada en `docs/` y repositorio remoto vacío listo para recibir el bootstrap.
+**Evidencia:** documentación versionada en `docs/`, repositorio remoto conectado y primer commit publicado.
 
-**Momento de demo:** todavía no hay demo funcional; esta etapa explica por qué el equipo puede trabajar en paralelo sin perder el hilo del producto.
+**Momento de demo:** todavía no hay demo completa; esta etapa explica por qué el equipo puede trabajar en paralelo sin perder el hilo del producto.
 
-**Siguiente paso:** M0-01, bootstrap reproducible del workspace.
+**Siguiente paso:** validar el bootstrap técnico y comenzar el borde GitHub.
 
-### 2026-08-29 · Bootstrap técnico iniciado
+### 2026-08-29 · Bootstrap técnico reproducible
 
 **Qué buscamos demostrar:** que una persona nueva puede levantar los tres runtimes y encontrar el estado del sistema sin credenciales reales.
 
-**En construcción:** monorepo pnpm, backend FastAPI, paquete Convex, pantalla inicial del dashboard, configuración segura y fixture local.
+**Resultado:** monorepo pnpm, backend FastAPI, paquete Convex, pantalla inicial del dashboard, configuración segura y fixture local.
 
 **Criterio de evidencia:** comandos reproducibles, `/health`, typecheck/lint/build y tests mínimos pasando.
 
@@ -97,6 +97,16 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 **Momento de demo previsto:** un push autenticado será reconocido por el sistema antes de que empiece el procesamiento lento.
 
 **Siguiente paso:** generar las funciones Convex y conectar deliveryId con la deduplicación persistente.
+
+### 2026-08-29 · El plan se vuelve delegable
+
+**Qué cambió:** el plan M0 dejó de ser solo documentación local y se convirtió en un milestone de GitHub con seis issues trazables.
+
+**Estado:** cuatro tareas están cerradas con evidencia en commits; M0-04 queda abierto para completar funciones Convex y M0-06 para integrar el smoke test.
+
+**Momento de demo:** podemos mostrar no solo el producto, sino cómo el equipo convierte una idea compleja en trabajo coordinado y auditable.
+
+**Siguiente paso:** resolver la configuración manual de Convex y conectar la primera mutación real.
 
 ## Hitos que debemos registrar
 
