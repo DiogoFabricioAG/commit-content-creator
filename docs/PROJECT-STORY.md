@@ -245,6 +245,17 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Momento de demo:** el usuario recibe el borrador sin esperar una imagen y decide cuándo agregarla, evitando gasto y fallos silenciosos.
 
+### 2026-08-29 · La historia obtiene una puerta de entrada pública
+
+**Qué cambió:** la raíz de la web dejó de mezclar el mensaje público con el panel operativo. Ahora presenta la tesis del producto, el recorrido GitHub → historia → WhatsApp → LinkedIn, la aprobación humana y los límites de la demo; el panel reactivo se conserva en `/dashboard`.
+
+**Decisión:** completar M18-01 con contratos mock sustentados en el recorrido real y mantener fuera del copy las funciones multimedia y multiusuario que todavía están en backlog. La landing no simula autenticación ni afirma que esas capacidades estén disponibles.
+
+**Evidencia:** `lint`, TypeScript y el build de producción pasan; `/` y `/dashboard` prerenderizan correctamente. La revisión visual cubrió escritorio y un viewport móvil de 390 × 844 px, incluyendo una corrección al ancho mínimo del pipeline para eliminar recortes horizontales.
+
+**Momento de demo:** en menos de 30 segundos se entiende qué observa el producto, cómo crea una historia sustentada y por qué nada llega a LinkedIn sin un sí explícito.
+
+**Siguiente paso:** implementar M18-02 y M18-03 cuando estén disponibles los estados reales de onboarding, conexiones y confianza.
 ## Hitos que debemos registrar
 
 

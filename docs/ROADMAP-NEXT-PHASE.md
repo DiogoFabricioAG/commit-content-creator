@@ -214,7 +214,7 @@ Los trabajos de landing, copy y diseño visual pueden avanzar en paralelo con co
 
 ### Frente E · Landing y experiencia pública
 
-#### [ ] M18-01 · Nueva landing orientada a conversión — Prioridad 3 · Frontend/Design
+#### [x] M18-01 · Nueva landing orientada a conversión — Prioridad 3 · Frontend/Design
 
 **Secciones:** tesis en una frase, cómo funciona en cuatro pasos, evidencia de seguridad, ejemplo WhatsApp → LinkedIn, integraciones, CTA de onboarding y estado de demo.
 
