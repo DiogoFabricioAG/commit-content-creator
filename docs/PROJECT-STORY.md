@@ -205,6 +205,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** cerrar la decisión `users` vs `workspaces` y comenzar M14-01, M14-02 y M15-01 en paralelo.
 
+### 2026-08-29 · La demo necesita dos actos
+
+**Qué queremos demostrar:** primero, que el producto puede leer la historia completa del repositorio y convertirla en una sola publicación adaptada a la voz del usuario; después, que el último `git commit -m "final"` cierra la historia con una revisión y publicación final trazables.
+
+**Decisión:** el digest histórico se ejecutará como una operación agregada, no como una repetición de cada commit. Así la demo no inunda WhatsApp ni genera publicaciones fragmentadas. El commit `final` queda reservado como última acción de la corrida y conserva la barrera de aprobación humana.
+
+**Evidencia de planificación:** `docs/demo/LIVE-DEMO-PLAN.md` define preparación, acciones, criterios de aceptación, evidencia y TODO M20–M21.
+
+**Momento de demo:** desde la landing se configuran preferencias, se ve el rango completo de commits, se revisa el borrador por WhatsApp, se publica en LinkedIn y se cierra con la confirmación del commit final.
+
+**Siguiente paso:** implementar M20-01/M20-02 y la acción de digest en la landing antes de preparar el commit final.
+
 ## Hitos que debemos registrar
 
 

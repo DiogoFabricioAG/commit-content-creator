@@ -10,6 +10,7 @@ Esta carpeta convierte el prompt maestro en un plan de ejecución compartido. El
 4. [Tablero de trabajo](./TASK-BOARD.md): estado actual y siguiente trabajo disponible.
 5. [Historia del proyecto](./PROJECT-STORY.md): bitácora de decisiones, evidencia y guion de demo.
 6. [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md): TODO multiusuario, onboarding, contenido rico, bot y landing.
+7. [Plan de demo en vivo](./demo/LIVE-DEMO-PLAN.md): digest histórico, revisión y cierre con `git commit -m "final"`.
 
 La especificación funcional completa sigue siendo [_MConverter.eu_Proof_of_Work_Prompt_Maestro_Codex.md](../_MConverter.eu_Proof_of_Work_Prompt_Maestro_Codex.md).
 

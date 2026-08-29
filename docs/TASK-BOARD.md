@@ -100,6 +100,8 @@ El detalle delegable está en [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md).
 | M17 | Bot WhatsApp natural, GPT, botones y memoria acotada | **4** | **Backlog** | M14-01, M15-01 |
 | M18 | Landing, confianza y polish responsive | **3** | **Backlog** | Puede avanzar con mocks |
 | M19 | Observabilidad, E2E multiusuario y demo final | **4** | **Backlog** | M14–M18 |
+| M20 | Digest histórico desde landing y preferencias | **5** | **Backlog** | M14, M15 |
+| M21 | Commit `final`, revisión y publicación final | **5** | **Backlog** | M20, M16, M17 |
 
 ### Primera tanda para delegar
 
@@ -109,3 +111,7 @@ El detalle delegable está en [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md).
 - **M16-01**: contratos de contenido rico.
 - **M17-02**: router conversacional GPT en sandbox.
 - **M18-01**: landing con contratos mock.
+
+### Demo en vivo
+
+El runbook de las dos pruebas está en [docs/demo/LIVE-DEMO-PLAN.md](./demo/LIVE-DEMO-PLAN.md). La implementación debe producir un solo digest histórico, mantener aprobación humana y reservar el commit exacto `final` para el último push de la corrida.
