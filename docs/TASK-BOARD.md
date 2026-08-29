@@ -41,9 +41,9 @@ Este milestone no agrega otra feature principal: convierte el pipeline implement
 
 | ID | Tarea | Dependencias | Responsable | Estado | Entregable / Evidencia |
 |---|---|---|---|---|---|
-| M13-01 | Validar GitHub App e ingestión real | M1-M3 | Backend / QA | **Ready** | Push firmado recibido en `laborin.meowlab.tech`, `deliveryId` persistido sin duplicar |
+| M13-01 | Validar GitHub App e ingestión real | M1-M3 | Backend / QA | **Done** | Push firmado recibido en `laborin.meowlab.tech`, dos respuestas `202` y una sola fila Convex para `deliveryId` `2725ab5c…` |
 | M13-02 | Completar OAuth de GitHub e identidad | M13-01 | Backend | **Backlog** | `/auth/github/callback` con `state`, intercambio de código y usuario vinculado |
-| M13-03 | Validar Kapso + aprobación por WhatsApp | M7-M10 | Integrations / QA | **Ready** | Borrador recibido, revisión V2 y aprobación explícita comprobadas |
+| M13-03 | Validar Kapso + aprobación por WhatsApp | M7-M10 | Integrations / QA | **In progress** | Borrador generado y solicitud pendiente; la salida actual es simulada porque `DEMO_MODE=true` |
 | M13-04 | Validar LinkedIn OAuth y publicación | M8-M11 | Integrations / QA | **Ready** | Solo la versión vigente aprobada produce un URN de LinkedIn |
 | M13-05 | Ensayar demo pública y capturar evidencia | M13-01, M13-03, M13-04 | QA / Demo | **Backlog** | Guion ejecutado, logs/capturas y bitácora final actualizada |
 

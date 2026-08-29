@@ -169,6 +169,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** ejecutar M13-01 con un push real, conservar la entrega y comprobar que Convex muestra la actividad sin duplicarla.
 
+### 2026-08-29 · Primer push real: GitHub ya alimenta Laborin
+
+**Qué cambió:** después de instalar la GitHub App, un push real al repositorio llegó al endpoint público firmado y recorrió el pipeline de ingestión hasta crear una historia y un borrador.
+
+**Evidencia:** el VPS registró dos respuestas `POST /webhooks/github` con `202 Accepted`; Convex conservó una sola entrega (`2725ab5c-a3e2-11f1-8cd7-5c1db85fd27a`) para el commit `8813e7f`. También quedaron `commit=fetched`, `story=detected`, `post=awaiting_approval` y `approval_request=pending`.
+
+**Decisión:** mantener `DEMO_MODE=true` mientras se verifica el borde GitHub. Así el primer push no envía mensajes reales ni publica en LinkedIn; la salida Kapso observada es `kapso_sim` y no debe presentarse como WhatsApp real.
+
+**Momento de demo:** por primera vez podemos enseñar el recorrido real `git push → webhook → Convex → historia → borrador` con trazabilidad completa y sin duplicar entregas.
+
+**Siguiente paso:** decidir explícitamente el cambio a `DEMO_MODE=false` para validar Kapso/WhatsApp con credenciales reales y luego probar aprobación y publicación.
+
 ## Hitos que debemos registrar
 
 
