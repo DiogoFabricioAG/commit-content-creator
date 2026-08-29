@@ -12,6 +12,13 @@ Este runbook define las dos pruebas que deben quedar listas antes de la presenta
 - Cada prueba debe conservar commits fuente, preferencias usadas, versiones del borrador, decisión de WhatsApp, URN de LinkedIn y confirmación de Kapso.
 - Después del commit final no se hace ningún push adicional; cualquier cambio posterior ya pertenece a otra demo.
 
+### Estado implementado
+
+- El push de GitHub deja una aprobación pendiente, pero no envía WhatsApp.
+- Un mensaje entrante del usuario activa la entrega del borrador dentro de la ventana de conversación.
+- Si `image` está activo, se genera y guarda un asset con OpenAI y Convex Storage antes de enviar la revisión.
+- Kapso entrega la imagen y luego una tarjeta interactiva con `Revisar`, `Publicar` y `Descartar`.
+
 ## Prueba 1 · Digest histórico desde la landing
 
 ### Objetivo

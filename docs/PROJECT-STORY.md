@@ -227,6 +227,14 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** ejecutar M16-05 y coordinarlo con M20-08/M20-09 para que la Prueba 1 y el commit `final` revisen el paquete multimedia completo.
 
+### 2026-08-29 · WhatsApp empieza por el usuario
+
+**Cambio real:** GitHub ya no dispara un mensaje saliente de aprobación. El borrador queda en cola y el primer mensaje del usuario abre la conversación; recién entonces Laborin entrega la imagen, el borrador y los botones de Kapso.
+
+**Decisión:** mantener el control humano y evitar mensajes proactivos fuera de la ventana de conversación. Los botones `Revisar`, `Publicar` y `Descartar` producen acciones deterministas; el lenguaje natural queda como fallback.
+
+**Evidencia:** el backend, los contratos de Kapso, el parser de respuestas interactivas, Convex Storage y el upload de imágenes a LinkedIn pasan las pruebas automatizadas y están desplegados en producción.
+
 ## Hitos que debemos registrar
 
 
