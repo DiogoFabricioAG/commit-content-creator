@@ -135,8 +135,18 @@ PYEOF
 
 docker compose --env-file "$env_file" -f "$compose_file" up -d --no-deps --force-recreate backend
 docker compose --env-file "$env_file" -f "$compose_file" ps backend
+
+echo "Esperando que el backend inicialice..."
+for i in $(seq 1 15); do
+  if curl -fsS https://laborin.meowlab.tech/health >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
 curl -fsS https://laborin.meowlab.tech/health
-printf '\nBackend reiniciado exitosamente con los nuevos secretos.\n'
+printf '\n\nBackend reiniciado exitosamente y saludable con los nuevos secretos.\n'
+
 '@
 $remoteCommand = $remoteCommand.Replace("__REMOTE_DIR__", $remoteDirQuoted).Replace("__JSON_BASE64__", $jsonBase64)
 
