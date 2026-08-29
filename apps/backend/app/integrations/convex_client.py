@@ -1,3 +1,5 @@
+from convex.values import CoercibleToConvexValue
+
 from app.config import Settings
 from app.schemas.github import NormalizedGitHubEvent
 from convex import ConvexClient
@@ -20,4 +22,15 @@ class ConvexGateway:
         return self._client
 
     def record_github_event(self, event: NormalizedGitHubEvent) -> None:
-        self.client.mutation("githubEvents:record", event.model_dump(mode="json"))
+        payload: dict[str, CoercibleToConvexValue] = {
+            "deliveryId": event.delivery_id,
+            "eventType": event.event_type,
+            "repositoryFullName": event.repository_full_name,
+            "commitShas": event.commit_shas,
+        }
+        if event.branch:
+            payload["branch"] = event.branch
+        if event.action:
+            payload["action"] = event.action
+
+        self.client.mutation("githubEvents:record", payload)

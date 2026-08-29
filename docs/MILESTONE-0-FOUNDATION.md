@@ -54,7 +54,7 @@ El último punto fue un bloqueo operativo para ramas y PRs y quedó resuelto al 
 - [x] M0-01 Bootstrap del workspace.
 - [x] M0-02 Esqueleto Web.
 - [x] M0-03 Esqueleto FastAPI.
-- [ ] M0-04 Modelo Convex inicial: schema listo; funciones pendientes.
+- [ ] M0-04 Modelo Convex inicial: schema y funciones escritos; codegen/typecheck de bindings pendiente.
 - [x] M0-05 Contratos y configuración.
 - [ ] M0-06 Quality gate y fixture local: integración pendiente.
 

@@ -19,6 +19,5 @@ __pycache__/
 
 .apps/
 .convex/
-convex/_generated/
 .DS_Store
 Thumbs.db

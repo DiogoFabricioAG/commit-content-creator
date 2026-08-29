@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "convex dev",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.schema.json",
+    "typecheck:generated": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
     "convex": "1.45.0",

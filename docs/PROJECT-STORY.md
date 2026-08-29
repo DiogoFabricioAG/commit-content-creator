@@ -108,6 +108,16 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** resolver la configuración manual de Convex y conectar la primera mutación real.
 
+### 2026-08-29 · Funciones Convex listas para codegen
+
+**Qué cambió:** se añadieron mutations y queries para registrar eventos GitHub, commits y actividad, con deduplicación por deliveryId y repositoryId + sha.
+
+**Decisión:** el repositorio no fabrica archivos _generated_. El CLI oficial debe crear esos bindings después del login y deployment de desarrollo; hasta entonces el schema tiene un check local separado.
+
+**Bloqueo:** falta ejecutar pnpm dev:convex con una cuenta/proyecto Convex y copiar la URL al entorno local.
+
+**Siguiente paso:** generar bindings oficiales, ejecutar typecheck:generated y cerrar M0-04.
+
 ## Hitos que debemos registrar
 
 | Hito | Evidencia técnica | Momento narrativo |
