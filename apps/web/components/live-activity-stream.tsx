@@ -3,7 +3,7 @@
 import { useQuery } from "convex/react";
 import { Activity, CheckCircle2, Clock, PlayCircle, XCircle } from "lucide-react";
 import { api } from "@convex/api";
-import type { Id } from "@convex/dataModel";
+import type { Doc, Id } from "@convex/dataModel";
 
 type LiveActivityStreamProps = {
   userId?: Id<"users">;
@@ -36,7 +36,7 @@ export function LiveActivityStream({ userId }: LiveActivityStreamProps) {
 
   return (
     <div className="space-y-3">
-      {activities.map((act) => {
+      {activities.map((act: Doc<"activityEvents">) => {
         const isCompleted = act.status === "completed";
         const isStarted = act.status === "started";
         const isFailed = act.status === "failed";
