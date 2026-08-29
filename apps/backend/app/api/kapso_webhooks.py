@@ -14,7 +14,7 @@ from app.schemas.story import StoryDetectionResult
 from app.whatsapp.kapso.client import KapsoClient
 from app.whatsapp.kapso.webhooks import (
     InvalidKapsoSignature,
-    parse_kapso_inbound_message,
+    parse_kapso_inbound_messages,
     verify_kapso_signature,
 )
 
@@ -240,9 +240,14 @@ async def receive_kapso_webhook(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid JSON: {error}"
         ) from error
 
-    inbound = parse_kapso_inbound_message(payload)
-    if not inbound:
+    inbounds = parse_kapso_inbound_messages(payload)
+    if not inbounds:
         return {"status": "ignored", "reason": "Not an inbound user message"}
 
-    background_tasks.add_task(_handle_inbound_whatsapp, inbound)
-    return {"status": "accepted", "message_id": inbound.message_id}
+    for inbound in inbounds:
+        background_tasks.add_task(_handle_inbound_whatsapp, inbound)
+    return {
+        "status": "accepted",
+        "message_id": inbounds[0].message_id,
+        "message_count": str(len(inbounds)),
+    }
