@@ -96,7 +96,7 @@ class CommitAnalyzer:
             problem = f"El producto necesitaba {subject} en {scope}."
             solution = f"Añadimos {subject} en {scope}."
 
-        summary = f"{self._summary_verb(commit_type)} {subject} en {scope}."
+        summary = f"{self._summary_verb(commit_type, commit.message)} {subject} en {scope}."
         changed_paths = ", ".join(file.path for file in commit.files[:3])
         path_context = f" Archivos principales: {changed_paths}." if changed_paths else ""
         impact = (
@@ -162,18 +162,25 @@ class CommitAnalyzer:
             subject,
             flags=re.IGNORECASE,
         )
+        subject = re.sub(
+            r"^(add|adds|added|implement|implements|implemented|create|creates|created|build|built|update|updates|updated|configure|configures|configured|enable|enables|enabled|improve|improves|improved)\s+",
+            "",
+            subject,
+            flags=re.IGNORECASE,
+        )
         return subject.rstrip(".") or "una mejora técnica"
 
     @staticmethod
     def _scope_for_commit(commit: NormalizedCommit) -> str:
         paths = [file.path.lower() for file in commit.files]
-        if any("convex" in path for path in paths):
+        signals = " ".join([commit.message.lower(), *paths])
+        if "convex" in signals:
             return "la persistencia en Convex"
-        if any("webhook" in path or "github" in path for path in paths):
+        if "webhook" in signals or "github" in signals:
             return "la integración con GitHub"
-        if any("linkedin" in path for path in paths):
+        if "linkedin" in signals:
             return "la publicación en LinkedIn"
-        if any("whatsapp" in path or "kapso" in path for path in paths):
+        if "whatsapp" in signals or "kapso" in signals:
             return "el flujo de aprobación por WhatsApp"
         if any(path.startswith("apps/web/") or path.startswith("web/") for path in paths):
             return "la experiencia web"
@@ -182,7 +189,12 @@ class CommitAnalyzer:
         return "el producto"
 
     @staticmethod
-    def _summary_verb(commit_type: str) -> str:
+    def _summary_verb(commit_type: str, message: str) -> str:
+        action = message.strip().lower().split(":", 1)[-1].strip().split(" ", 1)[0]
+        if action in {"update", "updates", "updated", "configure", "configured", "set"}:
+            return "Ajustamos"
+        if action in {"enable", "enabled", "improve", "improved"}:
+            return "Mejoramos"
         return {
             "bugfix": "Corregimos",
             "refactor": "Reestructuramos",

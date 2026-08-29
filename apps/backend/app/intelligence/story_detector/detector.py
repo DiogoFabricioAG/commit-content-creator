@@ -90,12 +90,10 @@ class StoryDetector:
         single_commit = commits[0]
         analysis = analyses[0] if analyses else None
         subject = self._human_subject(single_commit.message)
-        title_prefix = {
-            "bugfix": "Cómo corregimos",
-            "refactor": "Cómo reestructuramos",
-            "docs": "Cómo documentamos",
-            "performance": "Cómo optimizamos",
-        }.get(analysis.type if analysis else "feature", "Cómo añadimos")
+        title_prefix = self._title_prefix(
+            analysis.type if analysis else "feature",
+            single_commit.message,
+        )
         return StoryDetectionResult(
             storyDetected=True,
             confidence=0.82,
@@ -133,9 +131,23 @@ class StoryDetector:
             flags=re.IGNORECASE,
         )
         subject = re.sub(
-            r"^(add|adds|added|implement|implements|implemented|create|creates|created|build|built)\s+",
+            r"^(add|adds|added|implement|implements|implemented|create|creates|created|build|built|update|updates|updated|configure|configures|configured|enable|enables|enabled|improve|improves|improved)\s+",
             "",
             subject,
             flags=re.IGNORECASE,
         )
         return subject.rstrip(".") or "una mejora técnica"
+
+    @staticmethod
+    def _title_prefix(story_type: str, message: str) -> str:
+        action = message.strip().lower().split(":", 1)[-1].strip().split(" ", 1)[0]
+        if action in {"update", "updates", "updated", "configure", "configured", "set"}:
+            return "Cómo ajustamos"
+        if action in {"enable", "enabled", "improve", "improved"}:
+            return "Cómo mejoramos"
+        return {
+            "bugfix": "Cómo corregimos",
+            "refactor": "Cómo reestructuramos",
+            "docs": "Cómo documentamos",
+            "performance": "Cómo optimizamos",
+        }.get(story_type, "Cómo añadimos")
