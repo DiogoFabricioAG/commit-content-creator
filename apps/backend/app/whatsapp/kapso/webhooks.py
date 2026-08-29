@@ -145,3 +145,10 @@ def parse_kapso_inbound_messages(payload: dict[str, Any]) -> list[KapsoInboundMe
 def parse_kapso_inbound_message(payload: dict[str, Any]) -> KapsoInboundMessage | None:
     messages = parse_kapso_inbound_messages(payload)
     return messages[0] if messages else None
+
+
+def requests_image_generation(message: str) -> bool:
+    lowered = message.lower()
+    return "imagen" in lowered or "image" in lowered or "foto" in lowered or "picture" in lowered
+
+
