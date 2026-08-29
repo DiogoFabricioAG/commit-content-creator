@@ -1,4 +1,5 @@
 import json
+import re
 
 from app.config import Settings
 from app.schemas.commit_analysis import CommitAnalysis
@@ -12,7 +13,9 @@ class CommitAnalyzer:
     def analyze(self, commit: NormalizedCommit) -> CommitAnalysis:
         if self.settings.openai_api_key:
             try:
-                return self._analyze_with_llm(commit)
+                analysis = self._analyze_with_llm(commit)
+                if not self._is_placeholder_analysis(analysis, commit):
+                    return analysis
             except Exception:
                 pass
 
@@ -55,6 +58,8 @@ class CommitAnalyzer:
 
     def _analyze_heuristic(self, commit: NormalizedCommit) -> CommitAnalysis:
         msg = commit.message.lower()
+        subject = self._human_message(commit.message)
+        scope = self._scope_for_commit(commit)
         technologies = self._detect_technologies(commit)
 
         commit_type = "feature"
@@ -79,17 +84,25 @@ class CommitAnalyzer:
         solution: str | None = None
 
         if commit_type == "bugfix":
-            problem = f"Issue encountered: {commit.message}"
-            solution = f"Fixed in {', '.join([f.path for f in commit.files[:2]])}"
+            problem = f"Había un problema en {scope}: {subject}."
+            solution = f"Corregimos {subject} en {scope}."
         elif commit_type == "refactor":
-            problem = "Previous architecture had limitations or scaling overhead"
-            solution = f"Refactored: {commit.message}"
+            problem = f"La implementación de {scope} necesitaba una estructura más mantenible."
+            solution = f"Reorganizamos {scope} para {subject}."
+        elif commit_type == "docs":
+            problem = f"El proyecto necesitaba hacer más comprensible {subject}."
+            solution = f"Documentamos {subject} dentro de {scope}."
         else:
-            problem = "Feature or capability needed by users"
-            solution = f"Implemented {commit.message}"
+            problem = f"El producto necesitaba {subject} en {scope}."
+            solution = f"Añadimos {subject} en {scope}."
 
-        summary = f"Commit {commit.sha[:7]}: {commit.message}"
-        impact = f"Modified {commit.changed_files} files (+{commit.additions}/-{commit.deletions})"
+        summary = f"{self._summary_verb(commit_type)} {subject} en {scope}."
+        changed_paths = ", ".join(file.path for file in commit.files[:3])
+        path_context = f" Archivos principales: {changed_paths}." if changed_paths else ""
+        impact = (
+            f"El cambio afectó {commit.changed_files} archivo(s) (+{commit.additions}/-{commit.deletions})."
+            f"{path_context}"
+        )
 
         return CommitAnalysis(
             type=commit_type,  # type: ignore[arg-type]
@@ -127,5 +140,68 @@ class CommitAnalyzer:
                 techs.add("WebSockets")
             if "poll" in path:
                 techs.add("Polling")
+            if "/backend/" in f"/{path}" or path.startswith("backend/"):
+                techs.add("Backend")
+            if "/web/" in f"/{path}" or path.startswith("web/"):
+                techs.add("Next.js")
+            if path.startswith("convex/") or "/convex/" in f"/{path}":
+                techs.add("Convex")
+            if "dockerfile" in path or path.endswith("compose.yaml"):
+                techs.add("Docker")
+            if path.startswith(".github/"):
+                techs.add("GitHub Actions")
 
         return sorted(list(techs))
+
+    @staticmethod
+    def _human_message(message: str) -> str:
+        subject = message.strip().splitlines()[0] if message.strip() else "una mejora técnica"
+        subject = re.sub(
+            r"^(feat|fix|refactor|docs|test|perf|chore|build)(\([^)]*\))?\s*:\s*",
+            "",
+            subject,
+            flags=re.IGNORECASE,
+        )
+        return subject.rstrip(".") or "una mejora técnica"
+
+    @staticmethod
+    def _scope_for_commit(commit: NormalizedCommit) -> str:
+        paths = [file.path.lower() for file in commit.files]
+        if any("convex" in path for path in paths):
+            return "la persistencia en Convex"
+        if any("webhook" in path or "github" in path for path in paths):
+            return "la integración con GitHub"
+        if any("linkedin" in path for path in paths):
+            return "la publicación en LinkedIn"
+        if any("whatsapp" in path or "kapso" in path for path in paths):
+            return "el flujo de aprobación por WhatsApp"
+        if any(path.startswith("apps/web/") or path.startswith("web/") for path in paths):
+            return "la experiencia web"
+        if any(path.startswith("apps/backend/") or path.startswith("backend/") for path in paths):
+            return "el backend"
+        return "el producto"
+
+    @staticmethod
+    def _summary_verb(commit_type: str) -> str:
+        return {
+            "bugfix": "Corregimos",
+            "refactor": "Reestructuramos",
+            "docs": "Documentamos",
+            "performance": "Optimizamos",
+            "developer_experience": "Mejoramos la experiencia de desarrollo con",
+        }.get(commit_type, "Añadimos")
+
+    @staticmethod
+    def _is_placeholder_analysis(
+        analysis: CommitAnalysis,
+        commit: NormalizedCommit,
+    ) -> bool:
+        content = " ".join(
+            value.lower()
+            for value in (analysis.summary, analysis.problem or "", analysis.solution or "")
+        )
+        return (
+            f"commit {commit.sha[:7]}" in content
+            or "feature or capability needed by users" in content
+            or "implemented commit" in content
+        )

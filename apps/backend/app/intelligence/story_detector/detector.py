@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 
 from app.config import Settings
@@ -88,19 +89,53 @@ class StoryDetector:
         # Single commit story
         single_commit = commits[0]
         analysis = analyses[0] if analyses else None
+        subject = self._human_subject(single_commit.message)
+        title_prefix = {
+            "bugfix": "Cómo corregimos",
+            "refactor": "Cómo reestructuramos",
+            "docs": "Cómo documentamos",
+            "performance": "Cómo optimizamos",
+        }.get(analysis.type if analysis else "feature", "Cómo añadimos")
         return StoryDetectionResult(
             storyDetected=True,
             confidence=0.82,
             publishability=analysis.publishability if analysis else 0.75,
             storyType="problem_solution",
-            title=f"Shipping: {single_commit.message}",
-            summary=analysis.summary if analysis else single_commit.message,
-            problem=analysis.problem if analysis else "Engineering requirement",
+            title=f"{title_prefix} {subject}",
+            summary=analysis.summary
+            if analysis
+            else f"El proyecto incorporó {subject}.",
+            problem=analysis.problem
+            if analysis
+            else f"El producto necesitaba {subject}.",
             attempts=[],
-            solution=analysis.solution if analysis else f"Implemented {single_commit.message}",
-            learning=f"Built using {', '.join(analysis.technologies if analysis else ['clean code'])}",
+            solution=analysis.solution
+            if analysis
+            else f"Añadimos {subject} y dejamos el cambio listo para validación.",
+            learning=(
+                f"La implementación usa {', '.join(analysis.technologies)}."
+                if analysis and analysis.technologies
+                else "Los cambios pequeños también cuentan cuando resuelven una necesidad concreta."
+            ),
             impact=analysis.impact
             if analysis
             else f"+{single_commit.additions}/-{single_commit.deletions} lines changed",
             relatedCommitShas=[single_commit.sha],
         )
+
+    @staticmethod
+    def _human_subject(message: str) -> str:
+        subject = message.strip().splitlines()[0] if message.strip() else "una mejora técnica"
+        subject = re.sub(
+            r"^(feat|fix|refactor|docs|test|perf|chore|build)(\([^)]*\))?\s*:\s*",
+            "",
+            subject,
+            flags=re.IGNORECASE,
+        )
+        subject = re.sub(
+            r"^(add|adds|added|implement|implements|implemented|create|creates|created|build|built)\s+",
+            "",
+            subject,
+            flags=re.IGNORECASE,
+        )
+        return subject.rstrip(".") or "una mejora técnica"

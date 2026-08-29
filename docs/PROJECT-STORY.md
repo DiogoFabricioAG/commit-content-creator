@@ -280,6 +280,16 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** exponerlo mediante un servicio autenticado, persistir la ejecución en Convex y asociar una sola aprobación al digest.
 
+### 2026-08-29 · La primera historia deja de hablar en hashes
+
+**Qué descubrimos:** cuando GitHub API no estaba disponible, el fallback recibía el payload completo del push en lugar del commit concreto. El resultado era una publicación con títulos como `Shipping: Commit bc5b346` y frases genéricas sin contexto.
+
+**Qué corregimos:** el procesador ahora identifica el commit exacto dentro de `commits[]`/`head_commit`, conserva mensaje, autor, archivos y timestamp, y el analizador deriva problema, solución, alcance, tecnologías e impacto desde esa evidencia. El redactor evita títulos basados solo en SHA y ya no inserta claims fijos de WebSockets o base de datos en historias ajenas.
+
+**Evidencia:** se añadieron pruebas de fallback del payload de GitHub y de una historia legible para un commit de autenticación; `pnpm check` debe conservar este contrato antes del siguiente despliegue.
+
+**Momento de demo:** un commit sobre OAuth, Convex o WhatsApp produce una historia que explica qué cambió y por qué importa, aunque el proveedor de detalles no responda.
+
 ## Hitos que debemos registrar
 
 

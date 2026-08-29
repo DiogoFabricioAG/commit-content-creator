@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -32,7 +33,10 @@ class GitHubClient:
 
         if not self.settings.github_token:
             # Use fallback metadata from push event payload if available
-            return self._build_from_metadata(sha, fallback_metadata)
+            return self._build_from_metadata(
+                sha,
+                self._metadata_for_commit(sha, fallback_metadata),
+            )
 
         url = f"https://api.github.com/repos/{repository_full_name}/commits/{sha}"
         try:
@@ -61,7 +65,37 @@ class GitHubClient:
         except Exception:
             pass
 
-        return self._build_from_metadata(sha, fallback_metadata)
+        return self._build_from_metadata(
+            sha,
+            self._metadata_for_commit(sha, fallback_metadata),
+        )
+
+    @staticmethod
+    def _metadata_for_commit(
+        sha: str,
+        metadata: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if not metadata:
+            return None
+
+        raw_commits = metadata.get("commits")
+        if isinstance(raw_commits, list):
+            for raw_item in cast(list[object], raw_commits):
+                if not isinstance(raw_item, dict):
+                    continue
+                item = cast(dict[str, Any], raw_item)
+                item_sha = item.get("id") or item.get("sha")
+                if item_sha == sha:
+                    return item
+
+        head_commit = metadata.get("head_commit")
+        if isinstance(head_commit, dict):
+            head_commit = cast(dict[str, Any], head_commit)
+            head_sha = head_commit.get("id") or head_commit.get("sha")
+            if head_sha == sha:
+                return head_commit
+
+        return metadata
 
     def _check_fixture_commit(self, sha: str) -> NormalizedCommit | None:
         fixture_path = Path("fixtures/demo-commits.json")
@@ -107,26 +141,45 @@ class GitHubClient:
             if isinstance(raw_name, str) and raw_name.strip():
                 author_name = raw_name.strip()
 
-        message = str(meta.get("message") or f"Commit {sha[:7]}")
+        message = str(meta.get("message") or f"Commit {sha[:7]}").strip()
 
         added = meta.get("added", [])
         modified = meta.get("modified", [])
         removed = meta.get("removed", [])
 
 
-        all_paths = list(set(added + modified + removed))
-        raw_files = [{"filename": p, "status": "modified"} for p in all_paths]
+        all_paths = list(dict.fromkeys(added + modified + removed))
+        raw_files = [
+            {
+                "filename": path,
+                "status": (
+                    "added"
+                    if path in added
+                    else "removed"
+                    if path in removed
+                    else "modified"
+                ),
+            }
+            for path in all_paths
+        ]
         files = normalize_commit_files(raw_files)
+
+        committed_at = 1724930000000
+        timestamp = meta.get("timestamp")
+        if isinstance(timestamp, str):
+            try:
+                committed_at = int(datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp() * 1000)
+            except ValueError:
+                pass
 
         return NormalizedCommit(
             sha=sha,
             author=author_name,
             message=message,
-            committed_at=1724930000000,
+            committed_at=committed_at,
             additions=len(added) * 15 + len(modified) * 5,
             deletions=len(removed) * 10,
             changed_files=len(files),
             files=files,
             status="fetched",
         )
-

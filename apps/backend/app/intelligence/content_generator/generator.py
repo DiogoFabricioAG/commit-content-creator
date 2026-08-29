@@ -73,6 +73,8 @@ class ContentGenerator:
                         f"- Tone: {preferences.tone}. Technical Level: {preferences.technical_level}.\n"
                         f"- Never use these buzzwords: {', '.join(preferences.avoid_words)}.\n"
                         "- Format: Problem -> Solution or Before / After.\n"
+                        "- The title must describe the technical outcome, never just a SHA or 'Shipping: Commit ...'.\n"
+                        "- Use concrete repository evidence; do not invent metrics, users, integrations, or outcomes.\n"
                         "- Return JSON with keys: title, body, format, format_rationale, grounded_claims."
                     ),
                 },
@@ -109,12 +111,17 @@ class ContentGenerator:
             cta_str = "📌 Conclusión: Medir siempre antes de optimizar.\n\n"
 
         if is_shorter:
+            short_sections = [
+                f"💡 {story.title}",
+                story.summary,
+                f"El reto: {story.problem or 'resolver una necesidad concreta del producto'}.",
+                f"Qué hicimos: {story.solution or 'aplicamos el cambio y lo dejamos listo para validación'}.",
+                f"Resultado: {story.impact or 'el cambio quedó incorporado al proyecto'}.",
+                f"Aprendizaje: {story.learning or 'la evidencia concreta hace que una historia técnica sea entendible'}.",
+            ]
             body = (
-                f"💡 {story.title}\n\n"
-                f"El problema: {story.problem or 'Sobrecarga de peticiones y latencia innecesaria'}.\n"
-                f"La solución: {story.solution or 'Migramos a arquitectura orientada a eventos'}.\n\n"
-                f"Resultado: {story.impact or 'Mayor estabilidad y entrega instantánea'}.\n\n"
-                f"Lección: {story.learning or 'Iniciar simple está bien, pero los eventos en vivo deben ser reactivos'}.\n\n"
+                "\n\n".join(short_sections)
+                + "\n\n"
                 f"{cta_str}"
                 f"{hashtags_str}"
             )
@@ -123,23 +130,23 @@ class ContentGenerator:
                 body=body,
                 format="problem_solution",
                 format_rationale="Versión compacta y directa ajustada a las preferencias editoriales.",
-                grounded_claims=[
-                    "Replaced notification polling with WebSockets",
-                    "Eliminated duplicate HTTP requests",
-                ],
+                grounded_claims=self._grounded_claims(story),
             )
 
         # Standard draft
+        attempts = ""
+        if story.attempts:
+            attempts = "Cómo llegamos:\n" + "\n".join(
+                f"• {attempt}" for attempt in story.attempts[:5]
+            ) + "\n\n"
         body = (
             f"🚀 {story.title}\n\n"
-            f"Cuando construyes una feature técnica, la tentación inicial es usar la solución más rápida.\n\n"
-            f"Pero rápido nos encontramos con el dolor:\n"
-            f"• {story.problem or 'Peticiones duplicadas bajo alta concurrencia'}.\n"
-            f"• Sobrecarga innecesaria en la base de datos.\n\n"
-            f"👉 Qué hicimos:\n"
-            f"{story.solution or 'Reemplazamos el poller por conexiones WebSockets con manejo de eventos desacoplado'}.\n\n"
-            f"📌 Aprendizaje clave:\n"
-            f"{story.learning or 'El polling sirve para validar rápido, pero para eventos en vivo WebSockets es la arquitectura correcta.'}\n\n"
+            f"{story.summary}\n\n"
+            f"El reto:\n{story.problem or 'Resolver una necesidad concreta del producto.'}\n\n"
+            f"{attempts}"
+            f"Qué hicimos:\n{story.solution or 'Aplicamos el cambio y lo dejamos listo para validación.'}\n\n"
+            f"Resultado:\n{story.impact or 'El cambio quedó incorporado al proyecto.'}\n\n"
+            f"Aprendizaje clave:\n{story.learning or 'La evidencia concreta hace que una historia técnica sea entendible.'}\n\n"
             f"{cta_str}"
             f"{hashtags_str}"
         )
@@ -149,10 +156,13 @@ class ContentGenerator:
             body=body,
             format="problem_solution",
             format_rationale="El formato Problem -> Solution resalta el trade-off técnico y el aprendizaje.",
-            grounded_claims=[
-                "Started with initial technical solution",
-                "Identified bottleneck under load",
-                "Refactored architecture based on evidence",
-            ],
+            grounded_claims=self._grounded_claims(story),
         )
 
+    @staticmethod
+    def _grounded_claims(story: StoryDetectionResult) -> list[str]:
+        return [
+            claim
+            for claim in (story.summary, story.solution, story.impact)
+            if claim and claim.strip()
+        ]
