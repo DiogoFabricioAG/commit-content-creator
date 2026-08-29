@@ -157,6 +157,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** implementar el callback OAuth GitHub y crear la App usando Homepage `https://laborin.meowlab.tech/` y Webhook `https://laborin.meowlab.tech/webhooks/github`.
 
+### 2026-08-29 · Production Readiness: el sistema ya tiene una URL pública
+
+**Qué cambió:** el frente de despliegue quedó operativo con Web y Backend detrás de Caddy, healthcheck con espera de arranque y configuración de secretos fuera de Git. El proxy público también deja preparados los webhooks de GitHub/Kapso y las rutas de autenticación.
+
+**Decisión:** separar “pipeline implementado” de “demo validada con proveedores reales”. Un health `200` prueba disponibilidad, pero no sustituye un evento GitHub firmado ni una aprobación humana por WhatsApp.
+
+**Evidencia:** `pnpm check` pasa con 17 tests de backend, typecheck de Web/Convex/Python y build de Next.js; el VPS responde `healthy` y `https://laborin.meowlab.tech/health` responde `200`.
+
+**Momento de demo:** ya se puede abrir Laborin desde internet y conectar la GitHub App con un endpoint estable, sin interrumpir las aplicaciones existentes del VPS.
+
+**Siguiente paso:** ejecutar M13-01 con un push real, conservar la entrega y comprobar que Convex muestra la actividad sin duplicarla.
+
 ## Hitos que debemos registrar
 
 

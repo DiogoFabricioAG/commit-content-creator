@@ -4,13 +4,15 @@ Proof of Work transforma trabajo real de desarrollo en historias publicables par
 
 ## Estado
 
-Milestone 0 — Foundation listo; M1-01 es el siguiente corte de trabajo.
+Milestones 0–12 — Pipeline Proof of Work implementado. Laborin está desplegado públicamente en `https://laborin.meowlab.tech/`.
+
+El siguiente corte es M13 — Production Readiness & Demo: validar una entrega real de GitHub, completar OAuth de GitHub y ensayar el recorrido público con WhatsApp y LinkedIn.
 
 La primera rebanada funcional es:
 
 GitHub push → FastAPI → Convex → commit persistido → dashboard reactivo.
 
-La planificación y las reglas de colaboración están en docs/README.md.
+La planificación, el tablero y las reglas de colaboración están en [docs/README.md](docs/README.md).
 
 ## Requisitos locales
 

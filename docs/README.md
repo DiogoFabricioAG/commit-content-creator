@@ -14,11 +14,11 @@ La especificación funcional completa sigue siendo [_MConverter.eu_Proof_of_Work
 
 ## Estado actual
 
-**Fase:** Milestone 0 cerrado; M1-01 es el siguiente corte.
+**Fase:** Milestones 0–12 implementados; M13 — Production Readiness & Demo es el siguiente corte.
 
-**Realidad del proyecto al 29 de agosto de 2026:** existe bootstrap reproducible, Web arrancable, backend FastAPI con health, deployment Convex de desarrollo listo, bindings generados, fixture local y repositorio Git conectado a GitHub.
+**Realidad del proyecto al 29 de agosto de 2026:** existe bootstrap reproducible, pipeline M1–M12 implementado, Convex conectado, Web y Backend desplegados en `laborin.meowlab.tech`, HTTPS activo, secretos de producción cargados fuera de Git y quality gate completo.
 
-**Consecuencia:** `M0-01` a `M0-06` están listos. El equipo puede delegar M1-01, el webhook GitHub firmado, sin abrir todavía inteligencia, OAuth o publicación.
+**Consecuencia:** el equipo puede trabajar sobre un vertical slice completo. Lo que sigue es evidencia de producción: una entrega real de GitHub, la conexión de Kapso, la validación de OAuth y el ensayo de la demo.
 
 El tablero tiene un espejo remoto en el [milestone M0 - Foundation de GitHub](https://github.com/DiogoFabricioAG/commit-content-creator/milestone/1), con una issue por tarea delegable.
 

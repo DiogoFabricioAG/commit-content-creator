@@ -23,7 +23,7 @@ Webhook URL:   https://laborin.meowlab.tech/webhooks/github
 Redirect URI:  https://laborin.meowlab.tech/auth/github/callback
 ```
 
-El webhook ya corresponde a una ruta implementada. El callback OAuth queda reservado en Caddy para M1; no se debe tratar como flujo OAuth completo hasta que la validación de `state` y el intercambio de código estén implementados.
+El webhook ya corresponde a una ruta implementada. El callback OAuth queda reservado en Caddy para M13-02; no se debe tratar como flujo OAuth completo hasta que la validación de `state` y el intercambio de código estén implementados.
 
 ## Variables del VPS
 

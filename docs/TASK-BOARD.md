@@ -35,6 +35,18 @@ Usar `Blocked` cuando exista una dependencia externa o decisión material que no
 | M11 | LinkedIn Posts API Publishing | M10 | Backend | **Done** | `LinkedInPublisher` validado solo ante versión aprobada + URN guardado |
 | M12 | E2E Demo Script & Polish | M1-M11 | QA / Demo | **Done** | Script `run_demo_pipeline.py` verificado contra Convex Cloud |
 
+## Milestone 13 · Production Readiness & Demo
+
+Este milestone no agrega otra feature principal: convierte el pipeline implementado en una demo pública reproducible y deja explícitas las dependencias externas.
+
+| ID | Tarea | Dependencias | Responsable | Estado | Entregable / Evidencia |
+|---|---|---|---|---|---|
+| M13-01 | Validar GitHub App e ingestión real | M1-M3 | Backend / QA | **Ready** | Push firmado recibido en `laborin.meowlab.tech`, `deliveryId` persistido sin duplicar |
+| M13-02 | Completar OAuth de GitHub e identidad | M13-01 | Backend | **Backlog** | `/auth/github/callback` con `state`, intercambio de código y usuario vinculado |
+| M13-03 | Validar Kapso + aprobación por WhatsApp | M7-M10 | Integrations / QA | **Ready** | Borrador recibido, revisión V2 y aprobación explícita comprobadas |
+| M13-04 | Validar LinkedIn OAuth y publicación | M8-M11 | Integrations / QA | **Ready** | Solo la versión vigente aprobada produce un URN de LinkedIn |
+| M13-05 | Ensayar demo pública y capturar evidencia | M13-01, M13-03, M13-04 | QA / Demo | **Backlog** | Guion ejecutado, logs/capturas y bitácora final actualizada |
+
 
 ## Plantilla de asignación
 
@@ -71,7 +83,7 @@ Handoff:
 
 ## Orden de asignación recomendado
 
-1. Asignar M0-01 a una sola persona/agente para evitar tres bootstraps incompatibles.
-2. En cuanto M0-01 esté revisado, asignar M0-02, M0-03, M0-04 y M0-05 en paralelo.
-3. Reservar M0-06 para integrar; no asignarlo antes de que existan los tres runtimes.
-4. No abrir trabajo de publicación real antes de tener contratos, fixtures y pruebas de aprobación segura.
+1. Ejecutar M13-01 con un repositorio de prueba y conservar el `deliveryId` como evidencia.
+2. Abrir M13-02 en paralelo con una implementación aislada del callback OAuth.
+3. Validar M13-03 y M13-04 solo con credenciales cargadas fuera del repositorio.
+4. Reservar M13-05 para integrar el recorrido completo y actualizar la historia del proyecto.
