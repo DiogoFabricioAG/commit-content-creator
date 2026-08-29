@@ -31,7 +31,6 @@ try {
         throw "RemoteDir solo puede contener caracteres seguros de ruta Unix."
     }
 
-    $remoteDirQuoted = '"' + $RemoteDir + '"'
     $remoteCommand = @'
 set -euo pipefail
 
@@ -96,7 +95,7 @@ fi
 curl --fail --silent --show-error --retry 5 --retry-delay 1 --retry-connrefused https://laborin.meowlab.tech/health
 printf '\nWebhook secret actualizado y backend reiniciado.\n'
 '@
-    $remoteCommand = $remoteCommand.Replace("__REMOTE_DIR__", $remoteDirQuoted)
+    $remoteCommand = $remoteCommand.Replace("__REMOTE_DIR__", $RemoteDir)
 
     $sshArgs = @(
         "-o", "IdentitiesOnly=yes",
