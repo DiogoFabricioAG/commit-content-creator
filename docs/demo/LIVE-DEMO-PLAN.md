@@ -1,6 +1,6 @@
 # Plan de demo en vivo · Historia completa y cierre final
 
-Este runbook define las dos pruebas que deben quedar listas antes de la presentación. La primera demuestra que Laborin puede convertir el historial completo del proyecto en una sola historia basada en las preferencias del onboarding. La segunda demuestra el cierre: el último cambio real se envía con `git commit -m "final"` y se publica únicamente después de aprobación humana.
+Este runbook define las dos pruebas que deben quedar listas antes de la presentación. La primera demuestra que LaborIN puede convertir el historial completo del proyecto en una sola historia basada en las preferencias del onboarding. La segunda demuestra el cierre: el último cambio real se envía con `git commit -m "final"` y se publica únicamente después de aprobación humana.
 
 ## Reglas de la demo
 
@@ -24,7 +24,7 @@ Este runbook define las dos pruebas que deben quedar listas antes de la presenta
 
 ### Objetivo
 
-Desde la landing/onboarding, el usuario configura su estilo y solicita una compilación de todos los commits de `DiogoFabricioAG/commit-content-creator`. Laborin genera una sola publicación de LinkedIn con la voz y formatos elegidos por el usuario.
+Desde la landing/onboarding, el usuario configura su estilo y solicita una compilación de todos los commits de `DiogoFabricioAG/commit-content-creator`. LaborIN genera una sola publicación de LinkedIn con la voz y formatos elegidos por el usuario.
 
 ### Preparación
 
@@ -104,7 +104,7 @@ Después de ese push no se deben hacer commits correctivos en la misma corrida. 
 ### Comportamiento esperado
 
 1. GitHub entrega el push final firmado.
-2. Laborin reconoce el título exacto `final` como cierre de demo.
+2. LaborIN reconoce el título exacto `final` como cierre de demo.
 3. El backend consulta el historial completo, incluye el commit final y produce un único draft final.
 4. La landing muestra el paquete final para revisión.
 5. WhatsApp recibe la versión final con botones y texto natural.

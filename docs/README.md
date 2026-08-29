@@ -1,4 +1,4 @@
-# Laborin · Documentación del equipo
+# LaborIN · Documentación del equipo
 
 Esta carpeta convierte el prompt maestro en un plan de ejecución compartido. El objetivo no es duplicar la especificación del producto, sino dejar claro qué se construye primero, cómo se divide el trabajo y qué debe entregar cada persona o agente.
 

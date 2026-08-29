@@ -1,10 +1,10 @@
-# Laborin · Historia del proyecto
+# LaborIN · Historia del proyecto
 
 Esta bitácora conserva la historia que luego se contará en la demo final. Cada entrada debe conectar una necesidad del producto con una decisión técnica, una evidencia comprobable y un momento visible para quien vea la presentación.
 
 ## Tesis para la demo
 
-Laborin convierte trabajo real de desarrollo en una historia publicable, sin obligar al desarrollador a detenerse para redactarla. La confianza del producto se demuestra en el recorrido completo:
+LaborIN convierte trabajo real de desarrollo en una historia publicable, sin obligar al desarrollador a detenerse para redactarla. La confianza del producto se demuestra en el recorrido completo:
 
 ```text
 trabajo real → evidencia → historia explicable → borrador → aprobación humana → publicación
@@ -82,7 +82,7 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Evidencia:** la pantalla es responsive, tiene estados vacíos explícitos, foco visible en botones y no depende de datos simulados.
 
-**Momento de demo:** el juez entiende en segundos qué observa Laborin y en qué punto el humano conserva el control.
+**Momento de demo:** el juez entiende en segundos qué observa LaborIN y en qué punto el humano conserva el control.
 
 **Siguiente paso:** conectar el estado real de Convex sin perder esta lectura clara del pipeline.
 
@@ -143,7 +143,7 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Momento de demo:** Un desarrollador hace `git push` con 3 commits relacionados; el dashboard muestra la actividad en tiempo real, se detecta una sola historia, llega a WhatsApp, el usuario pide "hazlo más corto" recibiendo V2, luego responde "Ta bueno, publícalo noma", se publica en LinkedIn y recibe confirmación inmediata.
 
-### 2026-08-29 · Laborin sale a internet
+### 2026-08-29 · LaborIN sale a internet
 
 **Qué cambió:** desplegamos Web y Backend en `2.24.64.161` bajo `laborin.meowlab.tech`, usando Docker en la red interna existente y Caddy como terminación HTTPS y reverse proxy.
 
@@ -151,7 +151,7 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Evidencia:** el certificado TLS de Let’s Encrypt se obtuvo correctamente; Homepage responde `200`; `/health` responde `200` con `convex_configured=true`; el webhook responde `405 Allow: POST` ante GET, confirmando que alcanza FastAPI sin enviar un evento real.
 
-**Momento de demo:** ya podemos abrir Laborin desde una URL pública y conectar la GitHub App con un endpoint estable.
+**Momento de demo:** ya podemos abrir LaborIN desde una URL pública y conectar la GitHub App con un endpoint estable.
 
 **Pendiente explícito:** `https://laborin.meowlab.tech/auth/github/callback` está reservado en el proxy, pero devuelve `404` hasta implementar OAuth GitHub con validación de `state` e intercambio seguro del código.
 
@@ -165,11 +165,11 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Evidencia:** `pnpm check` pasa con 17 tests de backend, typecheck de Web/Convex/Python y build de Next.js; el VPS responde `healthy` y `https://laborin.meowlab.tech/health` responde `200`.
 
-**Momento de demo:** ya se puede abrir Laborin desde internet y conectar la GitHub App con un endpoint estable, sin interrumpir las aplicaciones existentes del VPS.
+**Momento de demo:** ya se puede abrir LaborIN desde internet y conectar la GitHub App con un endpoint estable, sin interrumpir las aplicaciones existentes del VPS.
 
 **Siguiente paso:** ejecutar M13-01 con un push real, conservar la entrega y comprobar que Convex muestra la actividad sin duplicarla.
 
-### 2026-08-29 · Primer push real: GitHub ya alimenta Laborin
+### 2026-08-29 · Primer push real: GitHub ya alimenta LaborIN
 
 **Qué cambió:** después de instalar la GitHub App, un push real al repositorio llegó al endpoint público firmado y recorrió el pipeline de ingestión hasta crear una historia y un borrador.
 
@@ -181,7 +181,7 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** decidir explícitamente el cambio a `DEMO_MODE=false` para validar Kapso/WhatsApp con credenciales reales y luego probar aprobación y publicación.
 
-### 2026-08-29 · Primer mensaje real: Laborin cruza el borde de Kapso
+### 2026-08-29 · Primer mensaje real: LaborIN cruza el borde de Kapso
 
 **Qué cambió:** al pasar `DEMO_MODE=false`, el primer intento reveló en el tail que el cliente estaba llamando una ruta antigua de Kapso y recibía `404`. Corregimos el endpoint Meta de WhatsApp, la cabecera `X-API-Key` y el payload estándar de mensajes de texto.
 
@@ -229,7 +229,7 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 ### 2026-08-29 · WhatsApp empieza por el usuario
 
-**Cambio real:** GitHub ya no dispara un mensaje saliente de aprobación. El borrador queda en cola y el primer mensaje del usuario abre la conversación; recién entonces Laborin entrega el texto y los botones de Kapso. La imagen queda bajo demanda.
+**Cambio real:** GitHub ya no dispara un mensaje saliente de aprobación. El borrador queda en cola y el primer mensaje del usuario abre la conversación; recién entonces LaborIN entrega el texto y los botones de Kapso. La imagen queda bajo demanda.
 
 **Decisión:** mantener el control humano y evitar mensajes proactivos fuera de la ventana de conversación. Los botones `Revisar`, `Publicar` y `Descartar` producen acciones deterministas; el lenguaje natural queda como fallback.
 
@@ -256,9 +256,9 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 **Momento de demo:** en menos de 30 segundos se entiende qué observa el producto, cómo crea una historia sustentada y por qué nada llega a LinkedIn sin un sí explícito.
 
 **Siguiente paso:** implementar M18-02 y M18-03 cuando estén disponibles los estados reales de onboarding, conexiones y confianza.
-### 2026-08-29 · Laborin adopta el lenguaje visual del evento
+### 2026-08-29 · LaborIN adopta el lenguaje visual del evento
 
-**Qué cambió:** la landing y el dashboard ahora comparten una dirección retro-terminal inspirada en The Next Craft: crema sobre negro verdoso, retícula técnica, scanlines, comandos BASIC, marcos CRT y componentes rectangulares. El contenido, las marcas y los assets siguen siendo propios de Laborin.
+**Qué cambió:** la landing y el dashboard ahora comparten una dirección retro-terminal inspirada en The Next Craft: crema sobre negro verdoso, retícula técnica, scanlines, comandos BASIC, marcos CRT y componentes rectangulares. El contenido, las marcas y los assets siguen siendo propios de LaborIN.
 
 **Decisión:** tomar el sistema visual como referencia, no copiar la página. La computadora, logotipos, tipografías propietarias y textos del evento no se reutilizan; el pipeline real de GitHub → Story AI → WhatsApp → LinkedIn ocupa el centro de la composición.
 

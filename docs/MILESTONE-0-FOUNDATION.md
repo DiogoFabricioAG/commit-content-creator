@@ -82,7 +82,7 @@ El último punto fue un bloqueo operativo para ramas y PRs y quedó resuelto al 
 
 **Dependencias:** M0-01.
 
-**Entregables:** `apps/web` con Next.js + TypeScript + Tailwind + shadcn/ui; layout inicial de Laborin; cliente/configuración de Convex preparada para suscripciones.
+**Entregables:** `apps/web` con Next.js + TypeScript + Tailwind + shadcn/ui; layout inicial de LaborIN; cliente/configuración de Convex preparada para suscripciones.
 
 **Criterios de aceptación:**
 

@@ -1,6 +1,6 @@
 # Roadmap siguiente fase · Onboarding, multiusuario y contenido rico
 
-Este documento convierte las próximas mejoras de Laborin en tareas delegables y paralelizables. El objetivo es pasar de una demo funcional de un usuario a una plataforma configurable, multiusuario y lista para producir contenido de calidad por texto, enlaces, imágenes y videos.
+Este documento convierte las próximas mejoras de LaborIN en tareas delegables y paralelizables. El objetivo es pasar de una demo funcional de un usuario a una plataforma configurable, multiusuario y lista para producir contenido de calidad por texto, enlaces, imágenes y videos.
 
 ## Escala de prioridad
 

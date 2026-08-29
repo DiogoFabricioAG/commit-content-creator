@@ -578,8 +578,8 @@ body {
   box-shadow: 4px 4px 0 #4b4d46;
 }
 
-.landing-shell header [aria-label="Laborin"] > span:last-child,
-.landing-shell footer [aria-label="Laborin"] > span:last-child {
+.landing-shell header [aria-label="LaborIN"] > span:last-child,
+.landing-shell footer [aria-label="LaborIN"] > span:last-child {
   font-family: "Barlow Semi Condensed", sans-serif;
   font-style: italic;
   letter-spacing: -0.03em;

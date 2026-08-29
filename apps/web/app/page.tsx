@@ -52,11 +52,11 @@ const trustPoints = [
 
 function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-2.5" aria-label="Laborin">
+    <span className="inline-flex items-center gap-2.5" aria-label="LaborIN">
       <span className="brand-mark" aria-hidden="true">
         <GitBranch className="size-4" strokeWidth={2.4} />
       </span>
-      {!compact ? <span className="text-[15px] font-semibold tracking-[-0.02em]">Laborin</span> : null}
+      {!compact ? <span className="text-[15px] font-semibold tracking-[-0.02em]">LaborIN</span> : null}
     </span>
   );
 }
@@ -68,7 +68,7 @@ export default function Home() {
       <div className="landing-glow landing-glow-two" />
 
       <div className="system-strip" aria-hidden="true">
-        <span>**** LABORIN BASIC V1 ****</span>
+        <span>**** LaborIN BASIC V1 ****</span>
         <span>64K STORY MEMORY · 38911 CLAIMS FREE</span>
         <span>READY.</span>
       </div>
@@ -210,7 +210,7 @@ export default function Home() {
         <div className="max-w-2xl">
           <p className="section-kicker">Cómo funciona</p>
           <h2 className="section-title mt-4">Sigue construyendo.<br />Nosotros conectamos los puntos.</h2>
-          <p className="section-copy mt-5">Laborin observa señales verificables, encuentra una narrativa coherente y te deja la última palabra.</p>
+          <p className="section-copy mt-5">LaborIN observa señales verificables, encuentra una narrativa coherente y te deja la última palabra.</p>
         </div>
 
         <div className="step-grid mt-14 grid gap-px overflow-hidden rounded-[28px] border border-[var(--landing-line)] bg-[var(--landing-line)] md:grid-cols-2 lg:grid-cols-4">
@@ -246,7 +246,7 @@ export default function Home() {
           <div className="flex items-center gap-3 border-b border-[var(--landing-line)] px-5 py-4">
             <div className="flex size-9 items-center justify-center rounded-full bg-[#25d366]/15 text-[#6ee7a0]"><MessageCircle className="size-4" /></div>
             <div>
-              <p className="text-sm font-semibold">Laborin</p>
+              <p className="text-sm font-semibold">LaborIN</p>
               <p className="text-[10px] text-[var(--signal)]">en línea · aprobación segura</p>
             </div>
           </div>

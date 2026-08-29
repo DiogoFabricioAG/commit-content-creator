@@ -5,7 +5,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Laborin",
+  title: "LaborIN",
   description: "Convierte trabajo real en historias publicables.",
 };
 

@@ -1,12 +1,12 @@
-# Laborin · Web & Landing Page Guide
+# LaborIN · Web & Landing Page Guide
 
-Guía completa de la aplicación web de **Laborin**: arquitectura actual, integración reactiva con Convex y el blueprint de diseño de la landing pública.
+Guía completa de la aplicación web de **LaborIN**: arquitectura actual, integración reactiva con Convex y el blueprint de diseño de la landing pública.
 
 ---
 
-## 📌 1. ¿Qué es Laborin y qué hace la página actual?
+## 📌 1. ¿Qué es LaborIN y qué hace la página actual?
 
-**Laborin** es una *Content Machine* para desarrolladores de software que transforma el trabajo técnico real (`git push`) en historias de alto impacto para LinkedIn, solicitando aprobación previa en lenguaje natural a través de **WhatsApp (Kapso)**.
+**LaborIN** es una *Content Machine* para desarrolladores de software que transforma el trabajo técnico real (`git push`) en historias de alto impacto para LinkedIn, solicitando aprobación previa en lenguaje natural a través de **WhatsApp (Kapso)**.
 
 ### Flujo de Valor Central:
 1. **GitHub Ingestion:** Escucha eventos `push` autenticados con HMAC SHA-256 y extrae los diffs limpios (omitiendo lockfiles y binarios).
@@ -59,12 +59,12 @@ Para transformar esta vista en una **Landing Page de nivel internacional**, apli
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  1. HEADER / NAVBAR (Logo Laborin, Live Status Pill, CTA)    │
+│  1. HEADER / NAVBAR (Logo LaborIN, Live Status Pill, CTA)    │
 ├──────────────────────────────────────────────────────────────┤
 │  2. HERO SECTION                                             │
 │     - Glowing Badge: "Evidence before content"               │
 │     - H1 (Poppins Bold): "Tu código ya tiene una historia.   │
-│                          Laborin la encuentra."              │
+│                          LaborIN la encuentra."              │
 │     - Subtitle + CTAs: [Conectar GitHub] [Ver Demo en Vivo]  │
 │     - Mockup Interactivo: Terminal -> AI -> WhatsApp         │
 ├──────────────────────────────────────────────────────────────┤
