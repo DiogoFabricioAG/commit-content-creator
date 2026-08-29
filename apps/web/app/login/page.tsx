@@ -3,7 +3,18 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Lock, Phone, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ExternalLink,
+  Phone,
+  ShieldCheck,
+  Sparkles,
+  Wand2,
+} from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@convex/api";
 import { useAuth } from "../../contexts/auth-context";
 
 function GithubIcon({ className = "size-5" }: { className?: string }) {
@@ -27,36 +38,58 @@ function LinkedinIcon({ className = "size-5" }: { className?: string }) {
 }
 
 function LoginContent() {
-  const { isAuthenticated, isLoading, loginWithPhone } = useAuth();
+  const { userId, isAuthenticated, isLoading, loginWithPhone } = useAuth();
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [mode, setMode] = useState<"unified" | "quick">("unified");
   const [phone, setPhone] = useState("+51");
   const [displayName, setDisplayName] = useState("");
+  const [repoFullName, setRepoFullName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const getOrCreateRepo = useMutation(api.repositories.getOrCreateForUser);
+
+  // Queries to check status if session is active or redirected
+  const linkedinAccount = useQuery(
+    api.socialAccounts.getByUserAndProvider,
+    userId ? { userId, provider: "linkedin" } : "skip",
+  );
+
+  const repositories = useQuery(
+    api.repositories.listForUser,
+    userId ? { userId } : "skip",
+  );
 
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && isAuthenticated && mode === "quick") {
       router.replace(redirectUrl);
     }
-  }, [isAuthenticated, isLoading, router, redirectUrl]);
+  }, [isAuthenticated, isLoading, router, redirectUrl, mode]);
 
-  const handlePhoneSubmit = async (e: React.FormEvent) => {
+  const handleUnifiedSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || phone.trim().length < 8) {
-      setErrorMsg("Por favor ingresa un número de WhatsApp válido con código de país (ej. +51999888777).");
+      setErrorMsg("Por favor ingresa tu número de WhatsApp con código de país (ej. +51999888777).");
       return;
     }
     setIsSubmitting(true);
     setErrorMsg("");
     try {
-      await loginWithPhone(phone, displayName || undefined);
+      const newUserId = await loginWithPhone(phone, displayName || undefined);
+      if (repoFullName.trim()) {
+        await getOrCreateRepo({
+          userId: newUserId,
+          fullName: repoFullName.trim(),
+        });
+      }
       router.push(redirectUrl);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al iniciar sesión";
+      const message = err instanceof Error ? err.message : "Error al configurar tu cuenta";
       setErrorMsg(message);
     } finally {
       setIsSubmitting(false);
@@ -67,7 +100,7 @@ function LoginContent() {
     <div className="relative min-h-screen bg-[#000000] text-[#ededed] font-sans antialiased flex flex-col justify-between selection:bg-white selection:text-black">
       {/* Background Glow */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute -top-[25%] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-white/[0.04] blur-[140px] rounded-full" />
+        <div className="absolute -top-[25%] left-1/2 -translate-x-1/2 w-[800px] h-[550px] bg-white/[0.04] blur-[150px] rounded-full" />
       </div>
 
       {/* Header */}
@@ -76,117 +109,234 @@ function LoginContent() {
           <div className="size-8 rounded-xl bg-white text-black flex items-center justify-center font-bold font-mono text-sm tracking-tighter group-hover:scale-105 transition shadow-lg shadow-white/20">
             L
           </div>
-          <span className="font-semibold text-lg tracking-tight text-white">Laborin</span>
+          <span className="font-semibold text-lg tracking-tight text-white">LaborIN</span>
         </Link>
 
-        <Link
-          href="/"
-          className="text-xs text-zinc-400 hover:text-white transition"
-        >
-          Volver a la portada
-        </Link>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setMode(mode === "unified" ? "quick" : "unified")}
+            className="text-xs font-medium text-zinc-400 hover:text-white transition"
+          >
+            {mode === "unified" ? "Acceso rápido con WhatsApp →" : "← Configuración 3-en-1"}
+          </button>
+          <Link
+            href="/"
+            className="text-xs text-zinc-500 hover:text-zinc-300 transition hidden sm:inline"
+          >
+            Portada
+          </Link>
+        </div>
       </header>
 
-      {/* Main Login Card */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#09090b]/90 p-8 backdrop-blur-2xl shadow-2xl shadow-black/80">
+      {/* Main Card */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-6">
+        <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#09090b]/90 p-6 sm:p-8 backdrop-blur-2xl shadow-2xl shadow-black/80">
           <div className="text-center">
-            <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-white/10 text-white mb-4 border border-white/10 shadow-inner">
-              <Lock className="size-5" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs text-emerald-300 mb-3">
+              <Wand2 className="size-3.5" />
+              Configuración Unificada de Acceso
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              Inicia sesión en Laborin
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              {mode === "unified"
+                ? "Conecta tus 3 Canales y Entra"
+                : "Inicia Sesión con tu WhatsApp"}
             </h1>
-            <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
-              Accede a tu espacio de trabajo para sincronizar tus commits, configurar tu voz editorial y aprobar historias por WhatsApp.
+            <p className="mt-2 text-xs sm:text-sm text-zinc-400 max-w-lg mx-auto leading-relaxed">
+              {mode === "unified"
+                ? "Vincula WhatsApp para aprobar historias, GitHub para escuchar tus commits y LinkedIn para publicar."
+                : "Ingresa tu número registrado para acceder directamente a tu espacio de trabajo."}
             </p>
           </div>
 
           {errorMsg && (
-            <div className="mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-300">
+            <div className="mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3.5 text-xs text-rose-300">
               {errorMsg}
             </div>
           )}
 
-          {/* 1-Click OAuth Buttons */}
-          <div className="mt-8 space-y-3">
-            <a
-              href="https://laborin.meowlab.tech/auth/github/login"
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10 hover:border-white/40 transition shadow-sm"
-            >
-              <GithubIcon className="size-5" />
-              Continuar con GitHub
-            </a>
+          {mode === "unified" ? (
+            /* UNIFIED 3-IN-1 SETUP FORM */
+            <form onSubmit={handleUnifiedSubmit} className="mt-8 space-y-6">
+              {/* Channel 1: WhatsApp */}
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/15 p-4 sm:p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+                      <Phone className="size-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">1. WhatsApp (Aprobaciones Kapso)</h3>
+                      <p className="text-[11px] text-zinc-400">Canal donde recibirás borradores interactivos.</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300">
+                    Requerido
+                  </span>
+                </div>
 
-            <a
-              href="https://laborin.meowlab.tech/auth/linkedin/login"
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm font-semibold text-sky-300 hover:bg-sky-500/20 transition shadow-sm"
-            >
-              <LinkedinIcon className="size-5" />
-              Continuar con LinkedIn
-            </a>
-          </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] font-medium text-zinc-300">
+                      Número con código de país
+                    </label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+51999888777"
+                      className="mt-1 w-full rounded-xl border border-emerald-500/30 bg-black/60 px-3.5 py-2 text-xs font-mono text-white placeholder-zinc-500 focus:border-emerald-400 focus:outline-none"
+                      required
+                    />
+                  </div>
 
-          <div className="relative my-6 flex items-center justify-center">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
-            </div>
-            <span className="relative bg-[#09090b] px-3 font-mono text-[10px] uppercase text-zinc-500 tracking-wider">
-              O con tu número de WhatsApp
-            </span>
-          </div>
-
-          {/* WhatsApp Direct Phone Login */}
-          <form onSubmit={handlePhoneSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-300">
-                Tu número de WhatsApp (para aprobaciones)
-              </label>
-              <div className="relative mt-1.5">
-                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-emerald-400" />
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+51999888777"
-                  className="w-full rounded-2xl border border-emerald-500/30 bg-black/60 pl-10 pr-4 py-2.5 text-sm font-mono text-white placeholder-zinc-500 focus:border-emerald-400 focus:outline-none"
-                  required
-                />
+                  <div>
+                    <label className="block text-[11px] font-medium text-zinc-300">
+                      Nombre a Mostrar <span className="text-zinc-500">(opcional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="ej: Diogo Fabricio"
+                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/60 px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:border-white/30 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-medium text-zinc-300">
-                Nombre de Desarrollador / Display Name <span className="text-zinc-500">(opcional)</span>
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="ej: Diogo Fabricio"
-                className="mt-1.5 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-white/30 focus:outline-none"
-              />
-            </div>
+              {/* Channels 2 & 3: GitHub & LinkedIn in side-by-side grid */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* GitHub Card */}
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white">
+                        <GithubIcon className="size-5" />
+                      </div>
+                      {repositories && repositories.length > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300">
+                          <Check className="size-3" /> Vinculado
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 font-mono text-[10px] text-zinc-300">
+                          Paso 2
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="mt-3 text-sm font-semibold text-white">2. GitHub (Commits & Diffs)</h3>
+                    <p className="text-[11px] text-zinc-400 mt-1">
+                      Monitorea eventos push y extrae historias técnicas.
+                    </p>
+                  </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black hover:bg-zinc-200 transition shadow-lg shadow-white/10 disabled:opacity-50"
-            >
-              {isSubmitting ? "Ingresando..." : "Entrar a mi Espacio de Trabajo"}
-              <ArrowRight className="size-4" />
-            </button>
-          </form>
+                  <div className="mt-4 space-y-2">
+                    <a
+                      href="https://laborin.meowlab.tech/auth/github/login"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20 transition"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      Autenticar con GitHub
+                    </a>
+                    <input
+                      type="text"
+                      value={repoFullName}
+                      onChange={(e) => setRepoFullName(e.target.value)}
+                      placeholder="o escribe repo: usuario/repo"
+                      className="w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
 
-          {/* Feature Badges */}
-          <div className="mt-8 grid grid-cols-2 gap-2 border-t border-white/10 pt-6 text-[11px] text-zinc-400">
-            <div className="flex items-center gap-1.5">
+                {/* LinkedIn Card */}
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex size-9 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400">
+                        <LinkedinIcon className="size-5" />
+                      </div>
+                      {linkedinAccount ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300">
+                          <Check className="size-3" /> Conectado
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 font-mono text-[10px] text-sky-300">
+                          Paso 3
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="mt-3 text-sm font-semibold text-white">3. LinkedIn (Publicación)</h3>
+                    <p className="text-[11px] text-zinc-400 mt-1">
+                      Permiso para publicar borradores tras tu visto bueno.
+                    </p>
+                  </div>
+
+                  <div className="mt-4">
+                    <a
+                      href="https://laborin.meowlab.tech/auth/linkedin/login"
+                      className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 hover:bg-sky-500/20 transition"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      {linkedinAccount ? "Re-conectar LinkedIn" : "Conectar LinkedIn"}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-black hover:bg-zinc-200 transition shadow-xl shadow-white/10 disabled:opacity-50"
+              >
+                {isSubmitting ? "Guardando canales..." : "Crear Espacio y Entrar al Dashboard"}
+                <ArrowRight className="size-4" />
+              </button>
+            </form>
+          ) : (
+            /* QUICK WHATSAPP LOGIN FORM */
+            <form onSubmit={handleUnifiedSubmit} className="mt-8 space-y-4 max-w-sm mx-auto">
+              <div>
+                <label className="block text-xs font-medium text-zinc-300">
+                  Número de WhatsApp registrado
+                </label>
+                <div className="relative mt-1.5">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-emerald-400" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+51999888777"
+                    className="w-full rounded-2xl border border-emerald-500/30 bg-black/60 pl-10 pr-4 py-2.5 text-sm font-mono text-white placeholder-zinc-500 focus:border-emerald-400 focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black hover:bg-zinc-200 transition shadow-lg shadow-white/10 disabled:opacity-50"
+              >
+                {isSubmitting ? "Ingresando..." : "Ingresar a mi Espacio"}
+                <ArrowRight className="size-4" />
+              </button>
+            </form>
+          )}
+
+          {/* Footer Badges */}
+          <div className="mt-8 grid grid-cols-3 gap-2 border-t border-white/10 pt-6 text-[11px] text-zinc-400 text-center">
+            <div className="flex items-center justify-center gap-1.5">
               <CheckCircle2 className="size-3.5 text-emerald-400" />
-              <span>Espacio 100% aislado</span>
+              <span>Multi-Tenant Seguro</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-center gap-1.5">
+              <ShieldCheck className="size-3.5 text-emerald-400" />
+              <span>Aprobación Humana</span>
+            </div>
+            <div className="flex items-center justify-center gap-1.5">
               <Sparkles className="size-3.5 text-emerald-400" />
-              <span>Diffs a Historias</span>
+              <span>Cero Clichés de IA</span>
             </div>
           </div>
         </div>
@@ -194,7 +344,7 @@ function LoginContent() {
 
       {/* Footer */}
       <footer className="relative z-10 w-full max-w-5xl mx-auto px-6 py-6 text-center text-xs text-zinc-600">
-        © 2026 Laborin. Proof of Work Content Automation.
+        © 2026 LaborIN. Proof of Work Content Automation.
       </footer>
     </div>
   );
