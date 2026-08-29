@@ -1,187 +1,136 @@
-"use client";
-
-import { useState } from "react";
-import { useQuery } from "convex/react";
+import Link from "next/link";
 import {
   Activity,
-  ArrowUpRight,
-  CheckCircle2,
+  ArrowRight,
   GitCommitHorizontal,
   LayoutDashboard,
-  Radio,
   ShieldCheck,
   Sparkles,
   Wand2,
 } from "lucide-react";
-import { api } from "@convex/api";
-import { LiveActivityStream } from "@/components/live-activity-stream";
-import { OnboardingWizard } from "@/components/onboarding-wizard";
-import { StoryDraftViewer } from "@/components/story-draft-viewer";
 
-const stages = [
-  { label: "1. GitHub Push", detail: "Webhook autenticado & normalizado", icon: GitCommitHorizontal },
-  { label: "2. Story Intelligence", detail: "Extracción, análisis y agrupación", icon: Activity },
-  { label: "3. WhatsApp / Kapso", detail: "Aprobación natural o revisión", icon: ShieldCheck },
-  { label: "4. LinkedIn Posts API", detail: "Publicación con trazabilidad de versiones", icon: ArrowUpRight },
-];
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "onboarding">("dashboard");
-
-  const defaultUser = useQuery(api.users.getByWhatsappPhone, {
-    whatsappPhone: "+51999888777",
-  });
-  const prefs = useQuery(
-    api.preferences.getForUser,
-    defaultUser?._id ? { userId: defaultUser._id } : "skip",
-  );
-
+export default function LandingPortalPage() {
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-8 lg:px-10">
-        {/* Header */}
-        <header className="flex items-center justify-between border-b border-[var(--line)] pb-6">
+    <main className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-between px-6 py-10 lg:px-10">
+        {/* Navbar */}
+        <header className="flex items-center justify-between border-b border-white/10 pb-6">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)] text-sm font-bold text-white shadow-lg shadow-[var(--accent)]/30">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-white text-black font-bold shadow-lg shadow-white/10">
               PoW
             </div>
             <div>
-              <p className="text-sm font-semibold tracking-tight">Proof of Work</p>
-              <p className="text-xs text-[var(--muted)]">Story intelligence para developers</p>
+              <p className="text-sm font-semibold tracking-tight text-white">Proof of Work</p>
+              <p className="text-xs text-zinc-400">Content Machine for Developers</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Tab Switcher */}
-            <div className="flex items-center rounded-xl border border-white/10 bg-white/[0.03] p-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab("dashboard")}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  activeTab === "dashboard"
-                    ? "bg-white text-black shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <LayoutDashboard className="size-3.5" />
-                Dashboard
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("onboarding")}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  activeTab === "onboarding"
-                    ? "bg-white text-black shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Wand2 className="size-3.5" />
-                Voz & Onboarding
-                {prefs?.onboardingCompleted ? (
-                  <span className="size-1.5 rounded-full bg-emerald-400" />
-                ) : (
-                  <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
-                )}
-              </button>
-            </div>
-
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-medium text-emerald-300">
-              <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
-              Convex Live
-            </span>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition"
+            >
+              <LayoutDashboard className="size-3.5" />
+              Abrir Dashboard
+            </Link>
           </div>
         </header>
 
-        {/* Hero & Subhead */}
-        <section className="py-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/[0.03] px-3 py-1.5 text-xs text-[var(--muted)]">
-            <Radio className="size-3.5 text-emerald-400 animate-pulse" />
-            Evidence before content · Human approval before publishing
+        {/* Hero */}
+        <section className="my-auto py-16 text-center sm:py-24">
+          <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-xs text-zinc-400">
+            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+            Evidence before content · Zero hallucination
           </div>
-          <h1 className="mt-4 max-w-4xl text-3xl font-semibold leading-[1.1] tracking-[-0.04em] sm:text-5xl">
-            Tu trabajo ya tiene una historia.
-            <span className="block text-[var(--accent-soft)]">Proof of Work la encuentra y publica.</span>
+
+          <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-bold tracking-tight text-white sm:text-6xl sm:leading-[1.1]">
+            Tu código ya tiene una historia.
+            <span className="block text-zinc-400">Proof of Work la encuentra y publica.</span>
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">
-            Observa tu actividad de Git, descubre la narrativa técnica detrás de tus commits, prepara borradores grounded para LinkedIn y pide aprobación directa por WhatsApp.
+
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
+            Observa tus commits de Git, detecta narrativas técnicas sustentadas en código real, genera borradores para LinkedIn y pide aprobación directa por WhatsApp.
           </p>
+
+          {/* Action CTAs */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-black hover:bg-zinc-200 transition shadow-xl shadow-white/10"
+            >
+              <LayoutDashboard className="size-4" />
+              Ir al Dashboard en Vivo
+              <ArrowRight className="size-4" />
+            </Link>
+
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white hover:bg-white/10 transition"
+            >
+              <Wand2 className="size-4 text-emerald-400" />
+              Configurar Voz & Onboarding
+            </Link>
+          </div>
+
+          {/* 4 Steps Bento Bar */}
+          <div className="mx-auto mt-16 grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-4 text-left">
+            {[
+              {
+                step: "01",
+                title: "Git Push",
+                desc: "Filtra lockfiles y extrae diffs limpios.",
+                icon: GitCommitHorizontal,
+              },
+              {
+                step: "02",
+                title: "Story AI",
+                desc: "Detecta el problema, solución y aprendizaje.",
+                icon: Sparkles,
+              },
+              {
+                step: "03",
+                title: "WhatsApp Chat",
+                desc: "Revisa o aprueba en lenguaje natural.",
+                icon: ShieldCheck,
+              },
+              {
+                step: "04",
+                title: "LinkedIn Post",
+                desc: "Publicación con trazabilidad de versiones.",
+                icon: Activity,
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.step}
+                  className="rounded-2xl border border-white/10 bg-zinc-950/60 p-4 backdrop-blur-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs text-zinc-500">{item.step}</span>
+                    <Icon className="size-4 text-zinc-400" />
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-white">{item.title}</p>
+                  <p className="mt-1 text-xs text-zinc-400 leading-snug">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
-        {/* Tab View: ONBOARDING WIZARD */}
-        {activeTab === "onboarding" ? (
-          <section className="pb-16">
-            <OnboardingWizard
-              userId={defaultUser?._id}
-              onComplete={() => setActiveTab("dashboard")}
-            />
-          </section>
-        ) : (
-          /* Tab View: LIVE DASHBOARD */
-          <>
-            {/* Pipeline Overview */}
-            <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {stages.map((stage) => {
-                const Icon = stage.icon;
-                return (
-                  <div
-                    key={stage.label}
-                    className="flex flex-col justify-between rounded-2xl border border-[var(--line)] bg-white/[0.025] p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex size-8 items-center justify-center rounded-lg bg-white/[0.06] text-[var(--accent-soft)]">
-                        <Icon className="size-4" />
-                      </div>
-                      <CheckCircle2 className="size-4 text-emerald-400" />
-                    </div>
-                    <div className="mt-4">
-                      <p className="text-sm font-semibold">{stage.label}</p>
-                      <p className="text-xs text-[var(--muted)] mt-0.5">{stage.detail}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Main Dashboard Workspace */}
-            <section className="grid flex-1 gap-8 lg:grid-cols-[1.2fr_0.8fr] pb-16">
-              {/* Left Column: Story Intelligence & Post Versioning */}
-              <div>
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="size-4 text-[var(--accent-soft)]" />
-                    <h2 className="text-lg font-semibold tracking-tight">Narrativa & Borrador</h2>
-                  </div>
-                  <span className="font-mono text-xs text-[var(--muted)]">Actualización reactiva</span>
-                </div>
-
-                <StoryDraftViewer />
-              </div>
-
-              {/* Right Column: Live Activity Stream */}
-              <div>
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Activity className="size-4 text-emerald-400" />
-                    <h2 className="text-lg font-semibold tracking-tight">Actividad en Vivo</h2>
-                  </div>
-                  <span className="font-mono text-xs text-[var(--muted)]">Convex Sync</span>
-                </div>
-
-                <div className="rounded-3xl border border-[var(--line)] bg-white/[0.035] p-5 shadow-xl">
-                  <LiveActivityStream />
-                </div>
-              </div>
-            </section>
-          </>
-        )}
-
         {/* Footer */}
-        <footer className="flex flex-col gap-2 border-t border-[var(--line)] py-6 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
-          <span>Proof of Work · Content Machine Vertical Slice</span>
-          <span>LinkedIn + Kapso WhatsApp + Convex + FastAPI + Next.js</span>
+        <footer className="flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+          <span>Proof of Work · Content Machine</span>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="hover:text-zinc-300 transition">
+              Dashboard
+            </Link>
+            <span>·</span>
+            <span className="text-zinc-600">v1.0 Producción</span>
+          </div>
         </footer>
       </div>
     </main>
   );
 }
-
