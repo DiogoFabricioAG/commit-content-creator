@@ -235,6 +235,8 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Evidencia:** el backend, los contratos de Kapso, el parser de respuestas interactivas, Convex Storage y el upload de imágenes a LinkedIn pasan las pruebas automatizadas; el flujo de imagen está reservado para una orden explícita dentro de la ventana activa.
 
+**Regla operativa:** un solo mensaje entrante abre o renueva la ventana de 24 horas. LaborIN libera todas las aprobaciones pendientes de ese teléfono y los nuevos commits se envían automáticamente mientras la ventana esté vigente; al vencer, vuelven a cola.
+
 ### 2026-08-29 · WhatsApp responde primero con texto
 
 **Qué descubrimos:** el webhook entrante sí llegaba a FastAPI, pero la primera respuesta intentaba generar/subir una imagen y después enviaba un cuerpo demasiado grande como mensaje interactivo. Convex no tenía la función de media en el deployment usado por el VPS y Kapso devolvía `400`, dejando la conversación sin respuesta visible.

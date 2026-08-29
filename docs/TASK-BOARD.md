@@ -97,7 +97,7 @@ El detalle delegable está en [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md).
 | M14 | Identidad, sesiones, OAuth y aislamiento multiusuario | **5** | **Backlog** | Decisión users vs workspaces |
 | M15 | Onboarding y preferencias de estilo/formato | **5** | **Backlog** | M14-01, M14-02 |
 | M16 | Texto, enlaces, imágenes, videos, diagramas de arquitectura y publisher rico | **4** | **Backlog** | M15-01; permisos externos |
-| M17 | Bot WhatsApp natural, GPT, botones y memoria acotada | **4** | **Backlog** | M14-01, M15-01 |
+| M17 | Bot WhatsApp natural, GPT, botones y memoria acotada | **4** | **In progress** | ventana 24h y batch de pendientes listos; falta GPT/memoria |
 | M18 | Landing, confianza y polish responsive | **3** | **In progress** | M18-01 terminado; M18-02 y M18-03 pendientes |
 | M19 | Observabilidad, E2E multiusuario y demo final | **4** | **Backlog** | M14–M18 |
 | M20 | Digest histórico desde landing y preferencias | **5** | **In progress** | M14, M15; núcleo backend listo para integrar |

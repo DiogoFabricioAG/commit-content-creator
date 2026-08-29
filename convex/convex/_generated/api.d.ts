@@ -23,6 +23,7 @@ import type * as socialAccounts from "../socialAccounts.js";
 import type * as stories from "../stories.js";
 import type * as storyClusters from "../storyClusters.js";
 import type * as users from "../users.js";
+import type * as whatsappSessions from "../whatsappSessions.js";
 
 import type {
   ApiFromModules,
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   stories: typeof stories;
   storyClusters: typeof storyClusters;
   users: typeof users;
+  whatsappSessions: typeof whatsappSessions;
 }>;
 
 /**

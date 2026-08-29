@@ -46,6 +46,65 @@ def _requests_image_generation(message: str) -> bool:
     )
 
 
+def _deliver_queued_approval(
+    *,
+    convex: ConvexGateway,
+    kapso_client: KapsoClient,
+    pending: dict[str, Any],
+    inbound: KapsoInboundMessage,
+) -> None:
+    req_id = str(pending.get("_id"))
+    post_id = str(pending.get("postId"))
+    user_id = str(pending.get("userId"))
+    post_version = convex.client.query(
+        "postVersions:getLatestForPost", {"postId": post_id}
+    )
+    if not post_version:
+        logger.warning("Approval %s has no post version", req_id)
+        return
+
+    title = str(post_version.get("title") or "Historia técnica")
+    body = str(post_version.get("body") or "")
+    version_num = int(post_version.get("version", 1))
+    outbound = kapso_client.send_draft_for_approval(
+        to_phone=inbound.from_phone,
+        story_title=title,
+        post_body=body,
+        version=version_num,
+    )
+    if outbound.message_id:
+        convex.set_approval_outbound_message_id(
+            approval_request_id=req_id,
+            kapso_message_id=outbound.message_id,
+        )
+
+    convex.record_approval_message(
+        approval_request_id=req_id,
+        direction="inbound",
+        message_id=inbound.message_id,
+        content=inbound.body,
+        interpreted_intent="session_started",
+        confidence=1.0,
+    )
+    if outbound.message_id:
+        convex.record_approval_message(
+            approval_request_id=req_id,
+            direction="outbound",
+            message_id=outbound.message_id,
+            content=outbound.body,
+        )
+    convex.record_activity(
+        user_id=user_id,
+        type_="approval.whatsapp.sent",
+        label=f"Sent draft V{version_num} to WhatsApp ({inbound.from_phone}) via Kapso",
+        status="completed",
+        metadata={
+            "approvalRequestId": req_id,
+            "trigger": "inbound_user_message",
+        },
+    )
+
+
 def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     settings = get_settings()
     convex = ConvexGateway(settings)
@@ -58,18 +117,40 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     publisher = LinkedInPublisher(settings)
     kapso_client = KapsoClient(settings)
 
-    # 1. Lookup pending approval for this phone
-    pending = convex.get_pending_approval_for_phone(inbound.from_phone)
-    if not pending:
+    # 1. Lookup all pending approvals for this phone. One inbound message opens
+    # a single 24-hour window and releases every approval queued before it.
+    pending_requests = convex.list_pending_approvals_for_phone(inbound.from_phone)
+    if not pending_requests:
         logger.info("No pending approval found for phone %s", inbound.from_phone)
         return
 
+    pending = pending_requests[-1]
     req_id = str(pending.get("_id"))
     post_id = str(pending.get("postId"))
     user_id = str(pending.get("userId"))
     current_version_id = str(pending.get("currentPostVersionId"))
 
-    # Fetch post and latest version
+    convex.open_whatsapp_window(
+        user_id=user_id,
+        recipient_phone=inbound.from_phone,
+        inbound_message_id=inbound.message_id,
+    )
+    queued_requests = [
+        request
+        for request in pending_requests
+        if not request.get("kapsoOutboundMessageId")
+    ]
+    if queued_requests:
+        for queued_request in queued_requests:
+            _deliver_queued_approval(
+                convex=convex,
+                kapso_client=kapso_client,
+                pending=queued_request,
+                inbound=inbound,
+            )
+        return
+
+    # Fetch post and latest version for decisions on the current approval.
     post = convex.client.query("posts:getById", {"postId": post_id})
     latest_version = convex.client.query("postVersions:getLatestForPost", {"postId": post_id})
     draft_body = latest_version.get("body") if latest_version else ""
@@ -79,47 +160,6 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         raw_title = latest_version.get("title")
         if isinstance(raw_title, str) and raw_title.strip():
             latest_title = raw_title.strip()
-
-    # The GitHub push queues the approval but does not send a business-initiated
-    # message. The first inbound message opens the WhatsApp 24-hour window.
-    if not pending.get("kapsoOutboundMessageId"):
-        # The first inbound message only starts the free-form WhatsApp window.
-        # Image generation is opt-in and happens only after the user asks for it.
-        outbound = kapso_client.send_draft_for_approval(
-            to_phone=inbound.from_phone,
-            story_title=latest_title,
-            post_body=draft_body,
-            version=version_num,
-        )
-        if outbound.message_id:
-            convex.set_approval_outbound_message_id(
-                approval_request_id=req_id,
-                kapso_message_id=outbound.message_id,
-            )
-
-        convex.record_approval_message(
-            approval_request_id=req_id,
-            direction="inbound",
-            message_id=inbound.message_id,
-            content=inbound.body,
-            interpreted_intent="session_started",
-            confidence=1.0,
-        )
-        if outbound.message_id:
-            convex.record_approval_message(
-                approval_request_id=req_id,
-                direction="outbound",
-                message_id=outbound.message_id,
-                content=outbound.body,
-            )
-        convex.record_activity(
-            user_id=user_id,
-            type_="approval.whatsapp.sent",
-            label=f"Sent draft V{version_num} to WhatsApp ({inbound.from_phone}) via Kapso",
-            status="completed",
-            metadata={"approvalRequestId": req_id, "trigger": "inbound_user_message"},
-        )
-        return
 
     # Explicit media command. This remains inside the user-initiated 24-hour
     # window and attaches the generated asset to the current post version.

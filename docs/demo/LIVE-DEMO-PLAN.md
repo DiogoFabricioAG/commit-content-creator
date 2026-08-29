@@ -15,7 +15,8 @@ Este runbook define las dos pruebas que deben quedar listas antes de la presenta
 ### Estado implementado
 
 - El push de GitHub deja una aprobación pendiente, pero no envía WhatsApp.
-- Un mensaje entrante del usuario activa la entrega del borrador dentro de la ventana de conversación.
+- Un único mensaje entrante del usuario abre la ventana de conversación y libera todas las aprobaciones pendientes; no se exige un mensaje por commit.
+- Los nuevos commits se envían automáticamente mientras la ventana de 24 horas esté activa; después vuelven a cola.
 - La primera entrega es texto y no genera imágenes automáticamente, aunque el formato `image` esté configurado.
 - Después, un mensaje explícito como `genera una imagen y adjúntala` crea el asset con OpenAI y Convex Storage y lo reenvía junto al borrador.
 - Kapso entrega el texto y una tarjeta interactiva con `Revisar`, `Publicar` y `Descartar`; si el proveedor rechaza los botones, queda un fallback textual.
