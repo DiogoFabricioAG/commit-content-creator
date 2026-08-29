@@ -9,12 +9,13 @@ Esta carpeta convierte el prompt maestro en un plan de ejecución compartido. El
 3. [Flujo de trabajo del equipo](./TEAM-WORKFLOW.md): ramas, handoffs, revisión y definición de terminado.
 4. [Tablero de trabajo](./TASK-BOARD.md): estado actual y siguiente trabajo disponible.
 5. [Historia del proyecto](./PROJECT-STORY.md): bitácora de decisiones, evidencia y guion de demo.
+6. [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md): TODO multiusuario, onboarding, contenido rico, bot y landing.
 
 La especificación funcional completa sigue siendo [_MConverter.eu_Proof_of_Work_Prompt_Maestro_Codex.md](../_MConverter.eu_Proof_of_Work_Prompt_Maestro_Codex.md).
 
 ## Estado actual
 
-**Fase:** Milestones 0–12 implementados; M13 — Production Readiness & Demo es el siguiente corte.
+**Fase:** Milestones 0–13 en validación; M14–M19 cubren onboarding, multiusuario, contenido rico, bot humanizado y landing.
 
 **Realidad del proyecto al 29 de agosto de 2026:** existe bootstrap reproducible, pipeline M1–M12 implementado, Convex conectado, Web y Backend desplegados en `laborin.meowlab.tech`, HTTPS activo, secretos de producción cargados fuera de Git y quality gate completo.
 

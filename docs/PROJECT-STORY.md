@@ -193,6 +193,18 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Siguiente paso:** redeliver/probar un `POST` entrante de Kapso, responder "hazlo más corto" y verificar que la revisión V2 se guarda y se devuelve por WhatsApp.
 
+### 2026-08-29 · Segunda piedra: de demo de un usuario a plataforma configurable
+
+**Qué necesitamos ahora:** el pipeline ya cruza GitHub, Convex, Kapso y LinkedIn, pero todavía depende de un usuario por defecto, un estilo implícito y mensajes demasiado técnicos para una conversación cotidiana.
+
+**Decisión:** abrir una nueva fase por frentes paralelos. Identidad, aislamiento y preferencias son el camino crítico; media, bot, landing y calidad pueden avanzar con contratos y fixtures sin bloquearse entre sí.
+
+**Evidencia de planificación:** `docs/ROADMAP-NEXT-PHASE.md` define M14–M19 con prioridades 1–5, dependencias, responsables sugeridos y criterios de aceptación.
+
+**Momento de demo previsto:** una persona crea su workspace, conecta GitHub/LinkedIn, define su voz, recibe un borrador claro por WhatsApp, lo revisa con lenguaje natural o botones y publica el formato elegido.
+
+**Siguiente paso:** cerrar la decisión `users` vs `workspaces` y comenzar M14-01, M14-02 y M15-01 en paralelo.
+
 ## Hitos que debemos registrar
 
 

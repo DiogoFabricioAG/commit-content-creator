@@ -87,3 +87,25 @@ Handoff:
 2. Abrir M13-02 en paralelo con una implementación aislada del callback OAuth.
 3. Validar M13-03 y M13-04 solo con credenciales cargadas fuera del repositorio.
 4. Reservar M13-05 para integrar el recorrido completo y actualizar la historia del proyecto.
+
+## Milestones 14 a 19 · Plataforma configurable y multiusuario
+
+El detalle delegable está en [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md). La prioridad usa una escala de 1 a 5: 5 es crítica/bloqueante y 1 es polish.
+
+| Milestone | Enfoque | Prioridad base | Estado | Dependencia principal |
+|---|---|---:|---|---|
+| M14 | Identidad, sesiones, OAuth y aislamiento multiusuario | **5** | **Backlog** | Decisión users vs workspaces |
+| M15 | Onboarding y preferencias de estilo/formato | **5** | **Backlog** | M14-01, M14-02 |
+| M16 | Texto, enlaces, imágenes, videos y publisher rico | **4** | **Backlog** | M15-01; permisos externos |
+| M17 | Bot WhatsApp natural, GPT, botones y memoria acotada | **4** | **Backlog** | M14-01, M15-01 |
+| M18 | Landing, confianza y polish responsive | **3** | **Backlog** | Puede avanzar con mocks |
+| M19 | Observabilidad, E2E multiusuario y demo final | **4** | **Backlog** | M14–M18 |
+
+### Primera tanda para delegar
+
+- **M14-01**: modelo de tenancy y aislamiento.
+- **M14-02**: sesión y OAuth de GitHub.
+- **M15-01**: contrato de preferencias editoriales.
+- **M16-01**: contratos de contenido rico.
+- **M17-02**: router conversacional GPT en sandbox.
+- **M18-01**: landing con contratos mock.
