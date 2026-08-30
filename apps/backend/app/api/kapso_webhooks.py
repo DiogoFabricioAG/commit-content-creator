@@ -540,7 +540,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     )
 
     # A visual tool call stays inside the user-initiated 24-hour window and
-    # attaches the generated asset to the current post version.
+    # creates a new post version with the generated asset attached.
     if decision.intent == "generate_visual":
         visual_request = decision.visual_request
         if visual_request is None:
@@ -576,8 +576,16 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 content=generated_image.data,
                 mime_type=generated_image.mime_type,
             )
+            visual_version_num = version_num + 1
+            visual_version_id = convex.record_post_version(
+                post_id=post_id,
+                version=visual_version_num,
+                title=latest_title,
+                body=draft_body,
+                generation_reason=f"Visual asset requested: {inbound.body}",
+            )
             convex.record_media_asset(
-                post_version_id=current_version_id,
+                post_version_id=visual_version_id,
                 kind="image",
                 storage_id=stored_media["storageId"],
                 mime_type=generated_image.mime_type,
@@ -586,11 +594,16 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 source="openai",
                 prompt=generated_image.prompt,
             )
+            convex.update_approval_request(
+                approval_request_id=req_id,
+                status="pending",
+                current_post_version_id=visual_version_id,
+            )
             outbound = kapso_client.send_draft_for_approval(
                 to_phone=inbound.from_phone,
                 story_title=latest_title,
                 post_body=draft_body,
-                version=version_num,
+                version=visual_version_num,
                 image_url=stored_media["url"],
             )
             if outbound.message_id:
@@ -604,7 +617,8 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 label=f"Generated {visual_request.kind} asset for the draft",
                 status="completed",
                 metadata={
-                    "postVersionId": current_version_id,
+                    "postVersionId": visual_version_id,
+                    "version": str(visual_version_num),
                     "visualKind": visual_request.kind,
                 },
             )
