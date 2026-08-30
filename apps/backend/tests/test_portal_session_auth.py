@@ -29,12 +29,35 @@ class MockConvexPortalGateway:
             },
         }
 
+        self.preferences: dict[str, Any] = {}
+
     @property
     def is_configured(self) -> bool:
         return True
 
     def get_user_by_id(self, user_id: str) -> dict[str, Any] | None:
         return self.users.get(user_id)
+
+    def update_user_profile(
+        self,
+        *,
+        user_id: str,
+        display_name: str | None = None,
+        whatsapp_phone: str | None = None,
+        email: str | None = None,
+    ) -> str:
+        if user_id not in self.users:
+            raise ValueError("User not found")
+        if display_name is not None:
+            self.users[user_id]["displayName"] = display_name
+        return user_id
+
+    def get_user_preferences(self, user_id: str) -> Any:
+        return self.preferences.get(user_id)
+
+    def save_user_preferences(self, user_id: str, preferences: Any) -> str:
+        self.preferences[user_id] = preferences
+        return f"pref_{user_id}"
 
     def list_repositories_for_user(self, user_id: str) -> list[dict[str, Any]]:
         return [r for r in self.repositories.values() if r.get("userId") == user_id and r.get("enabled")]
@@ -154,3 +177,51 @@ def test_authenticated_user_only_receives_own_repositories(client_with_mock_conv
     repo_names = [r["fullName"] for r in data["repositories"]]
     assert "alice/project" in repo_names
     assert "bob/secret-project" not in repo_names
+
+
+def test_authenticated_user_can_save_preferences_and_update_profile(client_with_mock_convex: TestClient) -> None:
+    settings = Settings(
+        app_env="test",
+        session_secret="test-secret-key-32-bytes-minimum-length-ok",
+    )
+    sessions = SessionManager(settings)
+
+    # Alice logs in
+    alice_cookie_value = sessions.create_session("user_alice")
+    client_with_mock_convex.cookies.set(SESSION_COOKIE_NAME, alice_cookie_value)
+
+    # 1. Update profile
+    patch_res = client_with_mock_convex.patch(
+        "/api/portal/profile",
+        json={"display_name": "Alice Architect"},
+    )
+    assert patch_res.status_code == 200
+    assert patch_res.json()["status"] == "updated"
+
+    # 2. Save preferences with expanded schema
+    pref_payload = {
+        "role_title": "Staff Backend Engineer",
+        "language": "es",
+        "tone": "pragmatic_lead",
+        "target_audience": "senior_engineers",
+        "technical_level": "high",
+        "post_length": "standard",
+        "avoid_words": ["revolucionario", "delve"],
+        "custom_rules": ["Use bullet points"],
+        "include_code_snippets": True,
+        "include_metrics": True,
+        "preferred_cta": "custom_cta",
+        "custom_cta": "¿Cómo lo resolverían?",
+        "hashtags": ["#SoftwareEngineering"],
+        "allowed_formats": ["problem_solution", "before_after"],
+        "auto_publish": False,
+        "onboarding_completed": True,
+    }
+
+    put_res = client_with_mock_convex.put(
+        "/api/portal/preferences",
+        json=pref_payload,
+    )
+    assert put_res.status_code == 200
+    assert put_res.json()["status"] == "saved"
+    assert put_res.json()["userId"] == "user_alice"

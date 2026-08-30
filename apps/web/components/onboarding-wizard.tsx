@@ -269,7 +269,8 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
       });
 
       if (!res.ok) {
-        throw new Error("Failed to save preferences");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error((errData as { detail?: string })?.detail || "Failed to save preferences");
       }
 
       setSavedSuccess(true);
