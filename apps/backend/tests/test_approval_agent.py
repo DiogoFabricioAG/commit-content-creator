@@ -5,7 +5,7 @@ from app.config import Settings
 from app.intelligence.approval_agent.agent import ApprovalAgent
 
 
-class _FakeCompletions:
+class _FakeResponses:
     def __init__(self, captured: dict[str, Any]) -> None:
         self.captured = captured
 
@@ -15,35 +15,24 @@ class _FakeCompletions:
             "FakeToolCall",
             (),
             {
-                "type": "function",
-                "function": type(
-                    "FakeFunction",
-                    (),
+                "type": "function_call",
+                "name": "request_visual_asset",
+                "arguments": json.dumps(
                     {
-                        "name": "request_visual_asset",
-                        "arguments": json.dumps(
-                            {
-                                "kind": "infographic",
-                                "instruction": (
-                                    "Convierte el cambio en una infografía con texto legible "
-                                    "y métricas reales del borrador."
-                                ),
-                                "attach_to_draft": True,
-                            }
+                        "kind": "infographic",
+                        "instruction": (
+                            "Convierte el cambio en una infografía con texto legible "
+                            "y métricas reales del borrador."
                         ),
-                    },
-                )(),
+                        "attach_to_draft": True,
+                    }
+                ),
             },
-        )()
-        message = type(
-            "FakeMessage",
-            (),
-            {"tool_calls": [tool_call], "content": None},
         )()
         return type(
             "FakeResponse",
             (),
-            {"choices": [type("FakeChoice", (), {"message": message})()]},
+            {"output": [tool_call], "output_text": ""},
         )()
 
 
@@ -51,11 +40,7 @@ class _FakeOpenAI:
     def __init__(self, *, api_key: str) -> None:
         del api_key
         captured: dict[str, Any] = {}
-        self.chat = type(
-            "FakeChat",
-            (),
-            {"completions": _FakeCompletions(captured)},
-        )()
+        self.responses = _FakeResponses(captured)
         self.captured = captured
 
 
@@ -82,8 +67,12 @@ def test_agent_uses_gpt_tool_call_for_natural_visual_request(monkeypatch: Any) -
     assert decision.visual_request.kind == "infographic"
     assert "texto legible" in decision.visual_request.instruction
     tools = fake_client.captured["tools"]
-    assert tools[0]["function"]["name"] == "request_visual_asset"
-    assert tools[0]["function"]["strict"] is True
+    assert tools[0]["name"] == "request_visual_asset"
+    assert tools[0]["strict"] is True
+    assert fake_client.captured["text"] == {"format": {"type": "json_object"}}
+    assert fake_client.captured["instructions"]
+    assert fake_client.captured["input"]
+    assert "temperature" not in fake_client.captured
 
 
 def test_agent_does_not_guess_from_keywords_without_gpt() -> None:
