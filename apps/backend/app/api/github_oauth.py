@@ -11,9 +11,10 @@ router = APIRouter(prefix="/auth/github", tags=["github"])
 
 
 @router.get("/login")
-async def github_login() -> RedirectResponse:
+async def github_login(userId: str | None = Query(None)) -> RedirectResponse:
     settings = get_settings()
-    state = str(uuid.uuid4())
+    nonce = str(uuid.uuid4())
+    state = f"{userId}:{nonce}" if userId else nonce
 
     if settings.github_client_id:
         redirect_uri = settings.github_redirect_uri
@@ -34,7 +35,6 @@ async def github_login() -> RedirectResponse:
     return RedirectResponse(url=app_url, status_code=status.HTTP_302_FOUND)
 
 
-
 @router.get("/callback")
 async def github_callback(
     code: str | None = Query(None),
@@ -49,7 +49,12 @@ async def github_callback(
         base_url = "http://localhost:3000"
 
     user_id = None
-    if convex.is_configured:
+    if state and ":" in state:
+        extracted = state.split(":")[0]
+        if extracted and len(extracted) > 5:
+            user_id = extracted
+
+    if convex.is_configured and not user_id:
         user_id = convex.get_or_create_default_user()
 
     # If installed via GitHub App
@@ -63,14 +68,14 @@ async def github_callback(
             )
         user_param = f"&userId={user_id}" if user_id else ""
         return RedirectResponse(
-            url=f"{base_url}/dashboard?tab=onboarding&status=github_connected{user_param}",
+            url=f"{base_url}/dashboard?tab=channels&status=github_connected{user_param}",
             status_code=status.HTTP_302_FOUND,
         )
 
     if not code:
         user_param = f"&userId={user_id}" if user_id else ""
         return RedirectResponse(
-            url=f"{base_url}/dashboard?tab=onboarding&status=github_connected{user_param}",
+            url=f"{base_url}/dashboard?tab=channels&status=github_connected{user_param}",
             status_code=status.HTTP_302_FOUND,
         )
 
@@ -140,7 +145,6 @@ async def github_callback(
 
     user_param = f"&userId={user_id}" if user_id else ""
     return RedirectResponse(
-        url=f"{base_url}/dashboard?tab=onboarding&status=github_connected{user_param}",
+        url=f"{base_url}/dashboard?tab=channels&status=github_connected{user_param}",
         status_code=status.HTTP_302_FOUND,
     )
-

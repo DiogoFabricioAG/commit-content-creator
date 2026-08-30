@@ -39,12 +39,25 @@ class GitHubEventProcessor:
             logger.info("Event %s is duplicate, ignoring.", event.delivery_id)
             return {"status": "duplicate", "delivery_id": event.delivery_id}
 
-        # 2. Get or create user & repo
-        user_id = self.convex.get_or_create_default_user()
-        repo_id = self.convex.get_or_create_repository(
-            user_id=user_id,
-            full_name=event.repository_full_name,
-            default_branch=event.branch,
+        # 2. Resolve repository and user identity
+        existing_repo = self.convex.get_repository_by_full_name(event.repository_full_name)
+        if existing_repo and existing_repo.get("userId"):
+            user_id = str(existing_repo["userId"])
+            repo_id = str(existing_repo["_id"])
+        else:
+            user_id = self.convex.get_or_create_default_user()
+            repo_id = self.convex.get_or_create_repository(
+                user_id=user_id,
+                full_name=event.repository_full_name,
+                default_branch=event.branch,
+            )
+
+        # Resolve user phone for WhatsApp approvals
+        user_doc = self.convex.get_user_by_id(user_id)
+        user_phone = (
+            str(user_doc.get("whatsappPhone"))
+            if user_doc and user_doc.get("whatsappPhone")
+            else self.settings.default_user_phone
         )
 
         # 3. Emit initial activity event
@@ -139,7 +152,6 @@ class GitHubEventProcessor:
                 score=story_result.confidence,
             )
 
-
             story_id = self.convex.record_story(
                 user_id=user_id,
                 repository_id=repo_id,
@@ -197,18 +209,17 @@ class GitHubEventProcessor:
 
             # 8. Queue approval without sending an outbound message. Kapso free-form
             # messages are sent only after the user opens the 24-hour conversation window.
-            phone = self.settings.default_user_phone
             approval_req_id = self.convex.record_approval_request(
                 user_id=user_id,
                 post_id=post_id,
                 current_post_version_id=version_id,
-                recipient_phone=phone,
+                recipient_phone=user_phone,
                 status="pending",
             )
 
-            if self.convex.is_whatsapp_window_open(phone):
+            if self.convex.is_whatsapp_window_open(user_phone):
                 outbound = self.kapso_client.send_draft_for_approval(
-                    to_phone=phone,
+                    to_phone=user_phone,
                     story_title=draft_result.title,
                     post_body=draft_result.body,
                     version=1,
@@ -228,7 +239,7 @@ class GitHubEventProcessor:
                     user_id=user_id,
                     type_="approval.whatsapp.sent",
                     label=(
-                        f"Draft V1 sent to WhatsApp ({phone}) inside the active 24h window"
+                        f"Draft V1 sent to WhatsApp ({user_phone}) inside the active 24h window"
                     ),
                     status="completed",
                     repository_id=repo_id,
@@ -242,7 +253,7 @@ class GitHubEventProcessor:
                     user_id=user_id,
                     type_="approval.whatsapp.queued",
                     label=(
-                        f"Draft V1 queued for WhatsApp ({phone}); "
+                        f"Draft V1 queued for WhatsApp ({user_phone}); "
                         "waiting for an inbound message to open the 24h window"
                     ),
                     status="started",

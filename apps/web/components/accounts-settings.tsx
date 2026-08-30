@@ -310,7 +310,7 @@ export function AccountsSettings({ userId }: AccountsSettingsProps) {
 
           <div className="mt-6 pt-4 border-t border-white/10">
             <a
-              href="https://laborin.meowlab.tech/auth/github/login"
+              href={`https://laborin.meowlab.tech/auth/github/login?userId=${userId}`}
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-xs font-semibold text-white hover:bg-white/20 transition"
             >
               <ExternalLink className="size-3.5" />
@@ -365,7 +365,7 @@ export function AccountsSettings({ userId }: AccountsSettingsProps) {
 
           <div className="mt-6 pt-4 border-t border-white/10">
             <a
-              href="https://laborin.meowlab.tech/auth/linkedin/login"
+              href={`https://laborin.meowlab.tech/auth/linkedin/login?userId=${userId}`}
               className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-semibold transition ${
                 linkedinAccount
                   ? "border border-white/20 bg-white/5 text-zinc-300 hover:bg-white/10"

@@ -88,6 +88,14 @@ class ConvexGateway:
         result = self.client.mutation("repositories:getOrCreateForUser", payload)
         return cast(str, result)
 
+    def get_repository_by_full_name(self, full_name: str) -> dict[str, Any] | None:
+        result = self.client.query("repositories:getByFullName", {"fullName": full_name})
+        return cast(dict[str, Any], result) if result else None
+
+    def get_user_by_id(self, user_id: str) -> dict[str, Any] | None:
+        result = self.client.query("users:getById", {"userId": user_id})
+        return cast(dict[str, Any], result) if result else None
+
     # GitHub Events & Commits
     def record_github_event(self, event: NormalizedGitHubEvent) -> dict[str, Any]:
         payload: dict[str, CoercibleToConvexValue] = {

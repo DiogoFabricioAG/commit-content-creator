@@ -12,10 +12,11 @@ router = APIRouter(prefix="/auth/linkedin", tags=["linkedin"])
 
 
 @router.get("/login")
-async def linkedin_login() -> RedirectResponse:
+async def linkedin_login(userId: str | None = Query(None)) -> RedirectResponse:
     settings = get_settings()
     oauth = LinkedInOAuth(settings)
-    state = str(uuid.uuid4())
+    nonce = str(uuid.uuid4())
+    state = f"{userId}:{nonce}" if userId else nonce
     url = oauth.get_authorization_url(state)
     return RedirectResponse(url)
 
@@ -39,8 +40,14 @@ async def linkedin_callback(
         ) from error
 
     user_id = None
+    if state and ":" in state:
+        extracted = state.split(":")[0]
+        if extracted and len(extracted) > 5:
+            user_id = extracted
+
     if convex.is_configured:
-        user_id = convex.get_or_create_default_user()
+        if not user_id:
+            user_id = convex.get_or_create_default_user()
         encrypted_token = encrypt_token(
             token_data.access_token,
             settings.token_encryption_key,
@@ -68,8 +75,6 @@ async def linkedin_callback(
         base_url = "http://localhost:3000"
 
     user_param = f"&userId={user_id}" if user_id else ""
-    redirect_target = f"{base_url}/dashboard?tab=onboarding&status=linkedin_connected{user_param}"
+    redirect_target = f"{base_url}/dashboard?tab=channels&status=linkedin_connected{user_param}"
 
     return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
-
-
