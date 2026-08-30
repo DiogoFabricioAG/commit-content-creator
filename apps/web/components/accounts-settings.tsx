@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import {
   Check,
   CheckCircle2,
@@ -50,8 +50,7 @@ export function AccountsSettings({ userId }: AccountsSettingsProps) {
   });
   const repositories = useQuery(api.repositories.listForUser, { userId });
 
-  const updateUserProfile = useMutation(api.users.updateProfile);
-  const getOrCreateRepo = useMutation(api.repositories.getOrCreateForUser);
+  const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
   // Form states
   const [editingPhone, setEditingPhone] = useState(false);
@@ -65,11 +64,18 @@ export function AccountsSettings({ userId }: AccountsSettingsProps) {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      await updateUserProfile({
-        userId,
-        whatsappPhone: phoneValue.trim() || undefined,
-        displayName: displayNameValue.trim() || undefined,
+      const res = await fetch(`${API_BASE_URL}/api/portal/profile`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          whatsapp_phone: phoneValue.trim() || undefined,
+          display_name: displayNameValue.trim() || undefined,
+        }),
       });
+      if (!res.ok) {
+        throw new Error("Failed to update profile");
+      }
       setEditingPhone(false);
       setSaveSuccessMsg("Perfil actualizado correctamente");
       setTimeout(() => setSaveSuccessMsg(""), 3000);
@@ -85,10 +91,18 @@ export function AccountsSettings({ userId }: AccountsSettingsProps) {
     if (!newRepoInput.trim()) return;
     setAddingRepo(true);
     try {
-      await getOrCreateRepo({
-        userId,
-        fullName: newRepoInput.trim(),
+      const res = await fetch(`${API_BASE_URL}/api/portal/repositories`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: newRepoInput.trim(),
+          default_branch: "main",
+        }),
       });
+      if (!res.ok) {
+        throw new Error("Failed to add repository");
+      }
       setNewRepoInput("");
       setSaveSuccessMsg("Repositorio agregado");
       setTimeout(() => setSaveSuccessMsg(""), 3000);

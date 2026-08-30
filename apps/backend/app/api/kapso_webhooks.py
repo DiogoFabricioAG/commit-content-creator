@@ -350,7 +350,25 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     # a single 24-hour window and releases every approval queued before it.
     pending_requests = convex.list_pending_approvals_for_phone(inbound.from_phone)
     if not pending_requests:
-        logger.info("No pending approval found for phone %s", inbound.from_phone)
+        # A first inbound message is also the proof that the person controls
+        # this WhatsApp number. Open the free 24-hour conversation window so
+        # the browser can request an OTP without using a paid template.
+        user_id = convex.get_or_create_default_user(
+            whatsapp_phone=inbound.from_phone,
+        )
+        convex.open_whatsapp_window(
+            user_id=user_id,
+            recipient_phone=inbound.from_phone,
+            inbound_message_id=inbound.message_id,
+        )
+        kapso_client.send_message(
+            inbound.from_phone,
+            (
+                "✅ Número recibido. Vuelve a LaborIN y solicita tu código de acceso "
+                "para terminar la verificación."
+            ),
+        )
+        logger.info("Opened WhatsApp onboarding window for %s", inbound.from_phone)
         return
 
     pending = pending_requests[-1]

@@ -13,8 +13,10 @@ from app.config import Settings
 
 SESSION_COOKIE_NAME = "laborin_session"
 OAUTH_STATE_COOKIE_NAME = "laborin_oauth_state"
+PHONE_CHALLENGE_COOKIE_NAME = "laborin_phone_challenge"
 SESSION_TTL_SECONDS = 60 * 60 * 24 * 7
 OAUTH_STATE_TTL_SECONDS = 60 * 10
+PHONE_CHALLENGE_TTL_SECONDS = 60 * 10
 
 
 class SessionError(ValueError):
@@ -25,6 +27,12 @@ class SessionError(ValueError):
 class OAuthState:
     user_id: str
     nonce: str
+
+
+@dataclass(frozen=True)
+class PhoneChallenge:
+    user_id: str
+    phone: str
 
 
 class SessionManager:
@@ -76,6 +84,41 @@ class SessionManager:
             nonce,
         )
 
+    def create_phone_challenge(self, user_id: str, phone: str, code: str) -> str:
+        now = int(time.time())
+        return self._sign(
+            {
+                "typ": "phone_challenge",
+                "sub": user_id,
+                "phone": phone,
+                "codeHash": self._hash_code(code),
+                "iat": now,
+                "exp": now + PHONE_CHALLENGE_TTL_SECONDS,
+            }
+        )
+
+    def verify_phone_challenge(self, request: Request, code: str) -> PhoneChallenge:
+        token = request.cookies.get(PHONE_CHALLENGE_COOKIE_NAME)
+        if not token:
+            raise SessionError("No phone verification is pending")
+
+        payload = self._verify(token, expected_type="phone_challenge")
+        user_id = payload.get("sub")
+        phone = payload.get("phone")
+        expected_hash = payload.get("codeHash")
+        if not (
+            isinstance(user_id, str)
+            and user_id.strip()
+            and isinstance(phone, str)
+            and phone.strip()
+            and isinstance(expected_hash, str)
+            and expected_hash.strip()
+        ):
+            raise SessionError("Malformed phone verification challenge")
+        if not hmac.compare_digest(expected_hash, self._hash_code(code.strip())):
+            raise SessionError("Invalid phone verification code")
+        return PhoneChallenge(user_id=user_id, phone=phone)
+
     def verify_oauth_state(
         self,
         state: str,
@@ -124,9 +167,24 @@ class SessionManager:
             path="/",
         )
 
+    def set_phone_challenge_cookie(self, response: Any, token: str) -> None:
+        response.set_cookie(
+            key=PHONE_CHALLENGE_COOKIE_NAME,
+            value=token,
+            max_age=PHONE_CHALLENGE_TTL_SECONDS,
+            httponly=True,
+            secure=self._is_secure,
+            samesite="lax",
+            path="/",
+        )
+
     @staticmethod
     def clear_oauth_state_cookie(response: Any) -> None:
         response.delete_cookie(key=OAUTH_STATE_COOKIE_NAME, path="/")
+
+    @staticmethod
+    def clear_phone_challenge_cookie(response: Any) -> None:
+        response.delete_cookie(key=PHONE_CHALLENGE_COOKIE_NAME, path="/")
 
     @property
     def _is_secure(self) -> bool:
@@ -180,6 +238,13 @@ class SessionManager:
                 raise SessionError("SESSION_SECRET or TOKEN_ENCRYPTION_KEY is required")
             raw_secret = "proof-of-work-local-session-secret"
         return hashlib.sha256(raw_secret.encode("utf-8")).digest()
+
+    def _hash_code(self, code: str) -> str:
+        return hmac.new(
+            self._secret,
+            code.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
 
     @staticmethod
     def _encode(value: str | bytes) -> str:

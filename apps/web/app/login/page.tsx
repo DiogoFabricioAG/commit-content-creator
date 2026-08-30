@@ -38,7 +38,13 @@ function LinkedinIcon({ className = "size-5" }: { className?: string }) {
 }
 
 function LoginContent() {
-  const { userId, isAuthenticated, isLoading, loginWithPhone } = useAuth();
+  const {
+    userId,
+    isAuthenticated,
+    isLoading,
+    requestPhoneVerification,
+    verifyPhoneCode,
+  } = useAuth();
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,6 +55,9 @@ function LoginContent() {
   const [repoFullName, setRepoFullName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
 
   const getOrCreateRepo = useMutation(api.repositories.getOrCreateForUser);
 
@@ -79,14 +88,25 @@ function LoginContent() {
     }
     setIsSubmitting(true);
     setErrorMsg("");
+    setInfoMsg("");
     try {
-      const newUserId = await loginWithPhone(phone, displayName || undefined);
+      let newUserId: Awaited<ReturnType<typeof verifyPhoneCode>>;
+      if (verificationPending) {
+        newUserId = await verifyPhoneCode(verificationCode);
+      } else {
+        await requestPhoneVerification(phone, displayName || undefined);
+        setVerificationPending(true);
+        setInfoMsg("Código enviado. Revisa WhatsApp e ingrésalo aquí para continuar.");
+        return;
+      }
       if (repoFullName.trim()) {
         await getOrCreateRepo({
           userId: newUserId,
           fullName: repoFullName.trim(),
         });
       }
+      setVerificationPending(false);
+      setVerificationCode("");
       router.push(redirectUrl);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al configurar tu cuenta";
@@ -154,6 +174,11 @@ function LoginContent() {
               {errorMsg}
             </div>
           )}
+          {infoMsg && (
+            <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 text-xs text-emerald-200">
+              {infoMsg}
+            </div>
+          )}
 
           {mode === "unified" ? (
             /* UNIFIED 3-IN-1 SETUP FORM */
@@ -217,6 +242,23 @@ function LoginContent() {
                     Hablar al +1 (208) 441-5504
                   </a>
                 </div>
+                {verificationPending && (
+                  <div className="mt-3 rounded-xl border border-sky-500/30 bg-sky-950/20 p-3">
+                    <label className="block text-[11px] font-medium text-sky-200">
+                      Código recibido por WhatsApp
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+                      placeholder="123456"
+                      className="mt-1 w-full rounded-xl border border-sky-500/30 bg-black/60 px-3.5 py-2 text-sm font-mono tracking-[0.35em] text-white placeholder-zinc-600 focus:border-sky-400 focus:outline-none"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Channels 2 & 3: GitHub & LinkedIn in side-by-side grid */}
@@ -321,10 +363,14 @@ function LoginContent() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (verificationPending && verificationCode.length !== 6)}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-black hover:bg-zinc-200 transition shadow-xl shadow-white/10 disabled:opacity-50"
               >
-                {isSubmitting ? "Guardando canales..." : "Crear Espacio y Entrar al Dashboard"}
+                {isSubmitting
+                  ? "Verificando..."
+                  : verificationPending
+                    ? "Verificar WhatsApp y Entrar"
+                    : "Enviar código por WhatsApp"}
                 <ArrowRight className="size-4" />
               </button>
             </form>
@@ -348,12 +394,34 @@ function LoginContent() {
                 </div>
               </div>
 
+              {verificationPending && (
+                <div>
+                  <label className="block text-xs font-medium text-sky-200">
+                    Código recibido por WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="123456"
+                    className="mt-1.5 w-full rounded-2xl border border-sky-500/30 bg-black/60 px-4 py-2.5 text-center text-lg font-mono tracking-[0.35em] text-white placeholder-zinc-600 focus:border-sky-400 focus:outline-none"
+                  />
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (verificationPending && verificationCode.length !== 6)}
                 className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black hover:bg-zinc-200 transition shadow-lg shadow-white/10 disabled:opacity-50"
               >
-                {isSubmitting ? "Ingresando..." : "Ingresar a mi Espacio"}
+                {isSubmitting
+                  ? "Verificando..."
+                  : verificationPending
+                    ? "Verificar y entrar"
+                    : "Enviar código por WhatsApp"}
                 <ArrowRight className="size-4" />
               </button>
             </form>

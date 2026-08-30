@@ -6,6 +6,7 @@ from app.api.github_webhooks import router as github_webhook_router
 from app.api.health import router as health_router
 from app.api.kapso_webhooks import router as kapso_webhook_router
 from app.api.linkedin_oauth import router as linkedin_oauth_router
+from app.api.portal import router as portal_router
 from app.api.session_auth import router as session_auth_router
 from app.config import get_settings
 
@@ -20,7 +21,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -30,4 +31,4 @@ app.include_router(github_webhook_router)
 app.include_router(kapso_webhook_router)
 app.include_router(linkedin_oauth_router)
 app.include_router(session_auth_router)
-
+app.include_router(portal_router)

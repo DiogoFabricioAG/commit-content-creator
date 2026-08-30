@@ -26,7 +26,8 @@ type AuthContextType = {
   user: UserDoc | null | undefined;
   isLoading: boolean;
   isAuthenticated: boolean;
-  loginWithPhone: (phone: string, displayName?: string) => Promise<Id<"users">>;
+  requestPhoneVerification: (phone: string, displayName?: string) => Promise<void>;
+  verifyPhoneCode: (code: string) => Promise<Id<"users">>;
   logout: () => void;
 };
 
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userId ? { userId } : "skip",
   ) as UserDoc | null | undefined;
 
-  const loginWithPhone = useCallback(
+  const requestPhoneVerification = useCallback(
     async (phone: string, displayName?: string) => {
       const response = await fetch(`${API_BASE_URL}/auth/session/login`, {
         method: "POST",
@@ -80,19 +81,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }),
       });
 
+      const data = (await response.json().catch(() => ({}))) as {
+        detail?: string;
+        message?: string;
+      };
       if (!response.ok) {
-        const data = (await response.json().catch(() => ({}))) as { detail?: string };
-        throw new Error(data.detail || "No se pudo iniciar la sesión");
+        throw new Error(data.detail || "No se pudo enviar el código de WhatsApp");
       }
-
-      const data = (await response.json()) as { userId?: string };
-      if (!data.userId) throw new Error("El backend no devolvió una sesión válida");
-      const newUserId = data.userId as Id<"users">;
-      setUserId(newUserId);
-      return newUserId;
     },
     [],
   );
+
+  const verifyPhoneCode = useCallback(async (code: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/session/verify`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code.trim() }),
+    });
+
+    const data = (await response.json().catch(() => ({}))) as {
+      detail?: string;
+      userId?: string;
+    };
+    if (!response.ok) {
+      throw new Error(data.detail || "El código de WhatsApp no es válido");
+    }
+    if (!data.userId) throw new Error("El backend no devolvió una sesión válida");
+
+    const newUserId = data.userId as Id<"users">;
+    setUserId(newUserId);
+    return newUserId;
+  }, []);
 
   const logout = useCallback(() => {
     void fetch(`${API_BASE_URL}/auth/session/logout`, {
@@ -107,7 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: userId ? user : null,
     isLoading: !sessionReady || (!!userId && user === undefined),
     isAuthenticated: !!userId && !!user,
-    loginWithPhone,
+    requestPhoneVerification,
+    verifyPhoneCode,
     logout,
   };
 

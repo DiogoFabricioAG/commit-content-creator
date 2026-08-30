@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -36,10 +36,6 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
     activeUserId ? { userId: activeUserId } : "skip",
   );
 
-
-  // Mutations
-  const savePreferences = useMutation(api.preferences.save);
-  const updateUserProfile = useMutation(api.users.updateProfile);
 
   // Overrides
   const [overrideName, setOverrideName] = useState<string | null>(null);
@@ -91,38 +87,51 @@ export function OnboardingWizard({ userId, onComplete }: OnboardingWizardProps) 
     setOverrideAvoidWords(avoidWords.filter((item: string) => item !== w));
   };
 
+  const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+
   const handleFinish = async () => {
-    if (!activeUserId) return;
     setSaving(true);
     try {
-      // 1. Update user profile
-      await updateUserProfile({
-        userId: activeUserId,
-        displayName,
+      // 1. Update user profile via session API
+      await fetch(`${API_BASE_URL}/api/portal/profile`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          display_name: displayName,
+        }),
       });
 
-      // 2. Save editorial preferences with grounded publication format
-      await savePreferences({
-        userId: activeUserId,
-        roleTitle,
-        language,
-        tone,
-        targetAudience,
-        technicalLevel,
-        postLength,
-        avoidWords,
-        preferredCTA,
-        hashtags,
-        allowedFormats: [
-          "problem_solution",
-          "before_after",
-          "build_log",
-          "mini_case_study",
-          "architecture_breakdown",
-        ],
-        autoPublish,
-        onboardingCompleted: true,
+      // 2. Save editorial preferences via session API
+      const res = await fetch(`${API_BASE_URL}/api/portal/preferences`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role_title: roleTitle,
+          language,
+          tone,
+          target_audience: targetAudience,
+          technical_level: technicalLevel,
+          post_length: postLength,
+          avoid_words: avoidWords,
+          preferred_cta: preferredCTA,
+          hashtags,
+          allowed_formats: [
+            "problem_solution",
+            "before_after",
+            "build_log",
+            "mini_case_study",
+            "architecture_breakdown",
+          ],
+          auto_publish: autoPublish,
+          onboarding_completed: true,
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error("Failed to save preferences");
+      }
 
       setSavedSuccess(true);
       setTimeout(() => {

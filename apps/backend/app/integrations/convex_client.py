@@ -92,9 +92,65 @@ class ConvexGateway:
         result = self.client.query("repositories:getByFullName", {"fullName": full_name})
         return cast(dict[str, Any], result) if result else None
 
+    def list_repositories_for_user(self, user_id: str) -> list[dict[str, Any]]:
+        result = self.client.query("repositories:listForUser", {"userId": user_id})
+        return cast(list[dict[str, Any]], result or [])
+
+    def remove_repository_for_user(self, user_id: str, repository_id: str) -> str:
+        result = self.client.mutation(
+            "repositories:removeForUser",
+            {"userId": user_id, "repositoryId": repository_id},
+        )
+        return cast(str, result)
+
     def get_user_by_id(self, user_id: str) -> dict[str, Any] | None:
         result = self.client.query("users:getById", {"userId": user_id})
         return cast(dict[str, Any], result) if result else None
+
+    def update_user_profile(
+        self,
+        *,
+        user_id: str,
+        display_name: str | None = None,
+        whatsapp_phone: str | None = None,
+        email: str | None = None,
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {"userId": user_id}
+        if display_name is not None:
+            payload["displayName"] = display_name
+        if whatsapp_phone is not None:
+            payload["whatsappPhone"] = whatsapp_phone
+        if email is not None:
+            payload["email"] = email
+        result = self.client.mutation("users:updateProfile", payload)
+        return cast(str, result)
+
+    def list_activity_for_user(
+        self, user_id: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "activity:listRecent",
+            {"userId": user_id, "limit": limit},
+        )
+        return cast(list[dict[str, Any]], result or [])
+
+    def list_posts_for_user(
+        self, user_id: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "posts:listForUser",
+            {"userId": user_id, "limit": limit},
+        )
+        return cast(list[dict[str, Any]], result or [])
+
+    def list_approval_requests_for_user(
+        self, user_id: str
+    ) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "approvalRequests:listForUser",
+            {"userId": user_id},
+        )
+        return cast(list[dict[str, Any]], result or [])
 
     # GitHub Events & Commits
     def record_github_event(self, event: NormalizedGitHubEvent) -> dict[str, Any]:
@@ -425,6 +481,27 @@ class ConvexGateway:
             )
         except (TypeError, ValueError):
             return defaults
+
+    def save_user_preferences(
+        self, user_id: str, preferences: EditorialPreferences
+    ) -> str:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "userId": user_id,
+            "roleTitle": preferences.role_title,
+            "language": preferences.language,
+            "tone": preferences.tone,
+            "targetAudience": preferences.target_audience,
+            "technicalLevel": preferences.technical_level,
+            "postLength": preferences.post_length,
+            "avoidWords": preferences.avoid_words,
+            "preferredCTA": preferences.preferred_cta,
+            "hashtags": preferences.hashtags,
+            "allowedFormats": preferences.allowed_formats,
+            "autoPublish": preferences.auto_publish,
+            "onboardingCompleted": preferences.onboarding_completed,
+        }
+        result = self.client.mutation("preferences:save", payload)
+        return cast(str, result)
 
     # Approval Requests & Messages
     def record_approval_request(

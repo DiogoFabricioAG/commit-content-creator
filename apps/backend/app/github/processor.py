@@ -45,12 +45,22 @@ class GitHubEventProcessor:
             user_id = str(existing_repo["userId"])
             repo_id = str(existing_repo["_id"])
         else:
-            user_id = self.convex.get_or_create_default_user()
-            repo_id = self.convex.get_or_create_repository(
-                user_id=user_id,
-                full_name=event.repository_full_name,
-                default_branch=event.branch,
-            )
+            if self.settings.app_env != "production":
+                user_id = self.convex.get_or_create_default_user()
+                repo_id = self.convex.get_or_create_repository(
+                    user_id=user_id,
+                    full_name=event.repository_full_name,
+                    default_branch=event.branch,
+                )
+            else:
+                logger.warning(
+                    "Repository %s is not registered by any tenant. Skipping push event.",
+                    event.repository_full_name,
+                )
+                return {
+                    "status": "skipped",
+                    "reason": f"Repository {event.repository_full_name} is not registered",
+                }
 
         # Resolve user phone for WhatsApp approvals
         user_doc = self.convex.get_user_by_id(user_id)
