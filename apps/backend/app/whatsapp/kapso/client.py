@@ -7,6 +7,9 @@ from app.schemas.kapso import KapsoOutboundMessage
 
 logger = logging.getLogger(__name__)
 
+MAX_WHATSAPP_TEXT_LENGTH = 4096
+MAX_INTERACTIVE_BODY_LENGTH = 1024
+
 
 class KapsoClient:
     def __init__(self, settings: Settings) -> None:
@@ -73,6 +76,10 @@ class KapsoClient:
         """Send reply buttons, optionally with an image header."""
         if not 1 <= len(buttons) <= 3:
             raise ValueError("WhatsApp interactive messages require one to three buttons")
+        if not 1 <= len(body) <= MAX_INTERACTIVE_BODY_LENGTH:
+            raise ValueError(
+                "WhatsApp interactive message bodies require one to 1024 characters"
+            )
 
         normalized_buttons: list[dict[str, Any]] = []
         for button in buttons:
@@ -204,6 +211,39 @@ class KapsoClient:
                 message_type="image",
             )
 
+    @staticmethod
+    def _split_text(body: str, max_length: int) -> list[str]:
+        """Split text at readable boundaries without exceeding a provider limit."""
+        if not body:
+            return [""]
+
+        remaining = body.strip()
+        chunks: list[str] = []
+        while len(remaining) > max_length:
+            boundary = max(
+                remaining.rfind("\n\n", 0, max_length + 1),
+                remaining.rfind("\n", 0, max_length + 1),
+                remaining.rfind(" ", 0, max_length + 1),
+            )
+            if boundary < max_length // 2:
+                boundary = max_length
+            chunks.append(remaining[:boundary].rstrip())
+            remaining = remaining[boundary:].lstrip()
+
+        if remaining:
+            chunks.append(remaining)
+        return chunks
+
+    def _send_text_chunks(self, to_phone: str, body: str) -> KapsoOutboundMessage:
+        """Send a complete draft as readable text messages within WhatsApp limits."""
+        outbound: KapsoOutboundMessage | None = None
+        chunks = self._split_text(body, MAX_WHATSAPP_TEXT_LENGTH)
+        for chunk in chunks:
+            outbound = self.send_message(to_phone, chunk)
+        if outbound is None:
+            raise RuntimeError("Could not send WhatsApp text chunks")
+        return outbound
+
     def send_draft_for_approval(
         self,
         to_phone: str,
@@ -219,30 +259,65 @@ class KapsoClient:
                 f'🔄 Aquí tienes los cambios propuestos para la V{version}:\n\n'
                 f'"{story_title}"'
             )
+        draft_message = f"{header}\n\n{post_body}".strip()
+        action_message = (
+            "✅ Borrador completo enviado arriba.\n\n"
+            "¿Qué deseas hacer con esta versión?"
+        )
         full_message = (
-            f"{header}\n\n{post_body}\n\n"
+            f"{draft_message}\n\n"
             "Revisa el borrador y elige una acción. También puedes responder con texto."
+        )
+        buttons = [
+            {"id": "approval_review", "title": "Revisar"},
+            {"id": "approval_publish", "title": "Publicar"},
+            {"id": "approval_reject", "title": "Descartar"},
+        ]
+        full_message_sent = False
+
+        if len(full_message) > MAX_INTERACTIVE_BODY_LENGTH:
+            logger.info(
+                "Draft for %s is %s chars; sending full content before compact buttons",
+                to_phone,
+                len(full_message),
+            )
+            try:
+                self._send_text_chunks(to_phone, draft_message)
+                full_message_sent = True
+            except httpx.HTTPStatusError:
+                logger.exception("Could not send long WhatsApp draft for %s", to_phone)
+
+        interactive_body = (
+            action_message
+            if len(full_message) > MAX_INTERACTIVE_BODY_LENGTH
+            else full_message
         )
         try:
             return self.send_interactive_buttons(
                 to_phone,
-                full_message,
-                [
-                    {"id": "approval_review", "title": "Revisar"},
-                    {"id": "approval_publish", "title": "Publicar"},
-                    {"id": "approval_reject", "title": "Descartar"},
-                ],
+                interactive_body,
+                buttons,
                 image_url=image_url,
             )
         except httpx.HTTPStatusError:
-            # Keep text and image together if Meta/Kapso rejects the richer
-            # interactive payload, for example because the body is too long.
+            # An invalid media URL or a provider-side validation issue should
+            # not remove the buttons when the compact payload can still work.
             logger.warning(
-                "Falling back to a single media/text draft for %s", to_phone
+                "Interactive WhatsApp draft rejected for %s; retrying without media",
+                to_phone,
             )
-            if image_url:
-                return self.send_image(to_phone, image_url, full_message)
-            return self.send_message(to_phone, full_message)
+            try:
+                return self.send_interactive_buttons(
+                    to_phone,
+                    interactive_body,
+                    buttons,
+                )
+            except (httpx.HTTPStatusError, ValueError):
+                logger.warning("Could not deliver interactive buttons to %s", to_phone)
+
+            if not full_message_sent:
+                self._send_text_chunks(to_phone, draft_message)
+            return self.send_message(to_phone, action_message)
 
     def send_published_confirmation(
         self,
