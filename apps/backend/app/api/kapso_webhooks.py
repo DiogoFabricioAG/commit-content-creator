@@ -505,6 +505,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 story_title=latest_title,
                 story_summary=story_summary,
                 post_body=draft_body,
+                user_request=inbound.body,
             )
             stored_media = convex.upload_media(
                 content=generated_image.data,

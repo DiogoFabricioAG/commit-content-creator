@@ -25,13 +25,19 @@ class OpenAIImageGenerator:
         story_title: str,
         story_summary: str,
         post_body: str,
+        user_request: str = "",
     ) -> GeneratedImage:
         if not self.settings.openai_api_key:
             raise ImageGenerationUnavailable("OPENAI_API_KEY is required for image generation")
 
         from openai import OpenAI
 
-        prompt = self._build_prompt(story_title, story_summary, post_body)
+        prompt = self.build_prompt(
+            story_title,
+            story_summary,
+            post_body,
+            user_request,
+        )
         client = OpenAI(api_key=self.settings.openai_api_key)
         result = client.images.generate(
             model=self.settings.openai_image_model,
@@ -54,12 +60,24 @@ class OpenAIImageGenerator:
         return GeneratedImage(data=image_bytes, mime_type="image/png", prompt=prompt)
 
     @staticmethod
-    def _build_prompt(story_title: str, story_summary: str, post_body: str) -> str:
+    def build_prompt(
+        story_title: str,
+        story_summary: str,
+        post_body: str,
+        user_request: str = "",
+    ) -> str:
+        requested_format = user_request.strip()[:1000] or "Create a visual summary of the story."
         return (
-            "Create a clean editorial illustration for a software engineering LinkedIn post. "
-            "Use an abstract visual metaphor for the technical change, with a modern blue and "
-            "violet palette, strong contrast, no logos, no readable text, no code screenshots, "
-            "and no invented product UI. Keep it professional and suitable for a 1536x1024 feed image.\n\n"
+            "Create a polished infographic in Spanish for a software engineering LinkedIn post, "
+            "not a generic decorative illustration. Follow the user's visual request exactly. "
+            "Include a concise, legible title, 3 to 5 information blocks, short labels, "
+            "and a clear visual hierarchy. Use readable Spanish text taken from the story and "
+            "show the problem, technical change, impact, and learning when those facts are available. "
+            "If the request asks for architecture, show labeled nodes and arrows. If it asks for a "
+            "flow, show the stages in order. Do not invent metrics, logos, products, or facts that are "
+            "not present in the story. Use a modern blue and violet palette, strong contrast, and a "
+            "professional 1536x1024 LinkedIn-feed composition.\n\n"
+            f"User's visual request (follow this): {requested_format}\n\n"
             f"Story: {story_title}\n"
             f"Summary: {story_summary}\n"
             f"Post context: {post_body[:1200]}"
