@@ -176,7 +176,9 @@ class SessionManager:
     def _secret(self) -> bytes:
         raw_secret = self.settings.session_secret or self.settings.token_encryption_key
         if not raw_secret:
-            raise SessionError("SESSION_SECRET or TOKEN_ENCRYPTION_KEY is required")
+            if self.settings.app_env == "production":
+                raise SessionError("SESSION_SECRET or TOKEN_ENCRYPTION_KEY is required")
+            raw_secret = "proof-of-work-local-session-secret"
         return hashlib.sha256(raw_secret.encode("utf-8")).digest()
 
     @staticmethod

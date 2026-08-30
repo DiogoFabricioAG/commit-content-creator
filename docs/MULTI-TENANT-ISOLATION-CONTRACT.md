@@ -44,8 +44,9 @@ Este documento describe las garantías arquitectónicas, el modelo de datos y lo
    - Aplica las preferencias de voz personalizadas del autor para redactar el borrador y encola la aprobación a su teléfono.
 
 2. **Propagación de Sesión en OAuth (GitHub / LinkedIn):**
-   - Las rutas `/auth/github/login?userId=...` y `/auth/linkedin/login?userId=...` encapsulan el ID del usuario autenticado en el parámetro `state`.
-   - El callback descifra el `state`, asocia los tokens directamente al `userId` del inquilino y redirige al Dashboard (`/dashboard?tab=channels&userId=...`).
+   - Las rutas OAuth requieren la cookie de sesión firmada `laborin_session`; ya no aceptan `userId` desde la URL.
+   - El backend genera un `state` firmado con usuario, proveedor, nonce y expiración. El nonce se conserva en una cookie `HttpOnly` de un solo uso.
+   - El callback valida la sesión, firma, proveedor, expiración y nonce antes de asociar los tokens al `userId` correcto y redirigir al Dashboard.
 
 ---
 

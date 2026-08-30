@@ -56,13 +56,16 @@ async def linkedin_login(request: Request) -> RedirectResponse:
 async def linkedin_callback(
     request: Request,
     code: str = Query(...),
-    state: str = Query(...),
+    state: str | None = Query(None),
 ) -> RedirectResponse:
 
     settings = get_settings()
     convex = ConvexGateway(settings)
     oauth = LinkedInOAuth(settings)
     sessions = SessionManager(settings)
+
+    if not state:
+        return _login_redirect(settings, "oauth_state_invalid")
 
     try:
         oauth_state = sessions.verify_oauth_state(
