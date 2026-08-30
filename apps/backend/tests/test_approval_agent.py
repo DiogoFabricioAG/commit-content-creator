@@ -71,7 +71,7 @@ def test_agent_uses_gpt_tool_call_for_natural_visual_request(monkeypatch: Any) -
     assert tools[0]["strict"] is True
     assert fake_client.captured["text"] == {"format": {"type": "json_object"}}
     assert fake_client.captured["instructions"]
-    assert fake_client.captured["input"]
+    assert "json" in fake_client.captured["input"]
     assert "temperature" not in fake_client.captured
 
 

@@ -104,7 +104,8 @@ class ApprovalAgent:
             input=(
                 f"User WhatsApp message: {message}\n"
                 f"Current Draft:\n{current_draft or ''}\n"
-                f"Awaiting revision feedback: {str(awaiting_revision_feedback).lower()}"
+                f"Awaiting revision feedback: {str(awaiting_revision_feedback).lower()}\n"
+                "If no tool is needed, return the classification as json."
             ),
             tools=cast(Any, [VISUAL_REQUEST_TOOL]),
             tool_choice="auto",
