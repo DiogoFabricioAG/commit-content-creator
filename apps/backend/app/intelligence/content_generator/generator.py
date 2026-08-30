@@ -34,6 +34,12 @@ AUDIENCE_GUIDANCE: dict[str, str] = {
     "general_tech": "Target General Tech Community: accessible yet rigorous, communicating technical depth clearly.",
 }
 
+LANGUAGE_NAMES: dict[str, str] = {
+    "es": "Spanish",
+    "en": "English",
+    "pt": "Portuguese",
+}
+
 
 class ContentGenerator:
     def __init__(self, settings: Settings) -> None:
@@ -88,6 +94,7 @@ class ContentGenerator:
 
         tone_desc = TONE_DESCRIPTIONS.get(preferences.tone, preferences.tone)
         audience_desc = AUDIENCE_GUIDANCE.get(preferences.target_audience, preferences.target_audience)
+        language_name = LANGUAGE_NAMES.get(preferences.language, preferences.language)
 
         custom_rules_str = ""
         if preferences.custom_rules:
@@ -109,7 +116,7 @@ class ContentGenerator:
 
         user_prompt = (
             f"Author Role: {preferences.role_title}\n"
-            f"Language: {preferences.language}\n"
+            f"Language: {language_name} ({preferences.language})\n"
             f"Tone of Voice: {tone_desc}\n"
             f"Target Audience: {audience_desc}\n"
             f"Technical Depth: {preferences.technical_level}\n"
@@ -140,8 +147,10 @@ class ContentGenerator:
                 {
                     "role": "system",
                     "content": (
-                        f"You are LaborIN's engineering content creator writing authentic LinkedIn posts in language code '{preferences.language}'.\n"
+                        f"You are LaborIN's engineering content creator writing authentic LinkedIn posts in {language_name}.\n"
                         "Core Directives:\n"
+                        f"- Write every sentence, heading, bullet, call to action, and hashtag context in {language_name}. "
+                        "Do not fall back to Spanish or mix languages unless the user explicitly asks for a quoted term.\n"
                         "- Evidence before content: NEVER invent benchmarks, fake metrics, or unverified claims.\n"
                         f"- Tone: {tone_desc}.\n"
                         f"- Audience: {audience_desc}.\n"

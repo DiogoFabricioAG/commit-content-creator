@@ -81,6 +81,13 @@ class OpenAIImageGenerator:
             "en": "English",
             "pt": "Portuguese",
         }.get(prefs.language, prefs.language)
+        avoid_words = ", ".join(prefs.avoid_words) or "none"
+        custom_rules = "\n".join(f"- {rule}" for rule in prefs.custom_rules) or "- none"
+        metrics_instruction = (
+            "Include verified metrics from the story when available."
+            if prefs.include_metrics
+            else "Do not emphasize metrics; focus on the qualitative outcome."
+        )
         return (
             f"Create a polished {format_label} for a software engineering LinkedIn post. "
             "It must not be a generic decorative illustration. Follow the user's visual request exactly. "
@@ -92,7 +99,10 @@ class OpenAIImageGenerator:
             "If the request asks for architecture, show labeled nodes and arrows. If it asks for a "
             "flow, show the stages in order. Do not invent metrics, logos, products, or facts that are "
             "not present in the story. Respect the author's configured tone, audience, and technical "
-            f"level: {prefs.tone}, {prefs.target_audience}, {prefs.technical_level}. Use a modern blue "
+            f"level: {prefs.tone}, {prefs.target_audience}, {prefs.technical_level}. The configured "
+            f"post length is {prefs.post_length}. {metrics_instruction} Avoid these words in visible text: "
+            f"{avoid_words}. Apply these custom author rules:\n{custom_rules}\n"
+            "Use a modern blue "
             "and violet palette, strong contrast, and a professional 1536x1024 LinkedIn-feed composition.\n\n"
             f"User's visual request (follow this): {requested_format}\n\n"
             f"Story: {story_title}\n"

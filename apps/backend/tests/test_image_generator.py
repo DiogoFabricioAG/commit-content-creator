@@ -27,4 +27,5 @@ def test_image_prompt_uses_configured_english_language() -> None:
 
     assert "All visible text must be written in English" in prompt
     assert "Do not translate the visible text into another language" in prompt
+    assert "The configured post length is standard" in prompt
     assert "Spanish" not in prompt
