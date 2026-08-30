@@ -95,7 +95,7 @@ export function HistoricalDigestLauncher({
           </label>
           <select
             id="digest-repository"
-            value={selectedRepositoryId}
+            value={effectiveRepositoryId}
             onChange={(event) => setSelectedRepositoryId(event.target.value)}
             disabled={!repositories || repositories.length === 0 || state === "starting"}
             className="min-w-0 flex-1 rounded-xl border border-emerald-500/30 bg-black/50 px-3 py-2.5 text-xs font-mono text-white outline-none transition focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"

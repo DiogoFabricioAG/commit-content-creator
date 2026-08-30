@@ -20,6 +20,7 @@ Este runbook define las dos pruebas que deben quedar listas antes de la presenta
 - La primera entrega es texto y no genera imágenes automáticamente, aunque el formato `image` esté configurado.
 - Después, un mensaje explícito como `genera una imagen y adjúntala` crea el asset con OpenAI y Convex Storage y lo reenvía junto al borrador.
 - Kapso entrega el texto y una tarjeta interactiva con `Revisar`, `Publicar` y `Descartar`; si el proveedor rechaza los botones, queda un fallback textual.
+- El dashboard ofrece **Construir historia completa**, permite escoger el repositorio y muestra el progreso en la actividad reactiva.
 
 ## Prueba 1 · Digest histórico desde la landing
 
@@ -36,9 +37,9 @@ Desde la landing/onboarding, el usuario configura su estilo y solicita una compi
 - Confirmar que Kapso apunta al WhatsApp del usuario.
 - Revisar el preview de preferencias antes de ejecutar el digest.
 
-### Acción de la landing
+### Acción del dashboard
 
-La landing debe ofrecer una acción claramente nombrada, por ejemplo **Construir historia completa** o **Generar resumen del proyecto**. Debe mostrar advertencia de que crea un único borrador histórico y pedir confirmación antes de llamar a proveedores reales.
+El dashboard ofrece una acción claramente nombrada: **Construir historia completa**. Permite escoger el repositorio, informa que crea un único borrador histórico y conserva la aprobación humana antes de publicar.
 
 ### Comportamiento esperado
 
@@ -127,15 +128,15 @@ Después de ese push no se deben hacer commits correctivos en la misma corrida. 
 
 ### Prioridad 5 · Crítica
 
-- [ ] **M20-01 · Historical digest API:** integrar `HistoricalDigestBuilder`, listar commits paginados y crear una ejecución idempotente de digest.
-- [ ] **M20-02 · Preferencias en generación:** cargar el perfil del usuario y aplicarlo a idioma, voz, longitud, formato, links y media.
+- [x] **M20-01 · Historical digest API:** integrar `HistoricalDigestBuilder`, listar commits paginados y crear una ejecución idempotente de digest.
+- [x] **M20-02 · Preferencias en generación:** cargar el perfil del usuario y aplicarlo a idioma, voz, longitud y formato base.
 - [ ] **M20-08 · Paquete multimedia del digest:** coordinar texto, enlaces, imagen, video y diagrama de arquitectura bajo una misma versión y aprobación.
 - [ ] **M21-01 · Trigger `final`:** detectar el commit final y lanzar el digest histórico sin enviar mensajes por cada commit.
 - [ ] **M21-02 · Aprobación final segura:** bloquear publicación hasta aprobación de la versión final vigente.
 
 ### Prioridad 4 · Crítica de producto
 
-- [ ] **M20-03 · Acción en landing:** onboarding, preview de preferencias y botón de digest con estado de ejecución.
+- [x] **M20-03 · Acción en dashboard:** selección de repositorio, botón de digest y estado de ejecución en la actividad reactiva.
 - [ ] **M20-04 · Contrato de ejecución demo:** estados `queued`, `analyzing`, `awaiting_review`, `approved`, `published`, `failed`.
 - [ ] **M21-03 · Confirmación final:** mensaje Kapso estructurado con estado, URN, link y resumen de fuentes.
 - [ ] **M21-04 · E2E real:** prueba con GitHub, Kapso, LinkedIn y Convex usando cuentas reales.

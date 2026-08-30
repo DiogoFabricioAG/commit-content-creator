@@ -112,7 +112,7 @@ El detalle delegable está en [Roadmap siguiente fase](./ROADMAP-NEXT-PHASE.md).
 - **M16-05**: generador de diagramas de arquitectura con evidencia y fallback textual.
 - **M17-02**: router conversacional GPT en sandbox.
 - **M18-01**: **Done** — landing de conversión responsive con recorrido y contratos mock.
-- **M20-01**: integrar `HistoricalDigestBuilder` con el endpoint/acción autenticada del digest.
+- **M20-01**: **Done** — endpoint autenticado, lectura paginada, persistencia idempotente y entrega de una sola narrativa por WhatsApp.
 
 ### Demo en vivo
 

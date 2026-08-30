@@ -215,7 +215,19 @@ La aprobación ocurre por WhatsApp y la publicación solo puede suceder ante una
 
 **Momento de demo:** desde la landing se configuran preferencias, se ve el rango completo de commits, se revisa el borrador por WhatsApp, se publica en LinkedIn y se cierra con la confirmación del commit final.
 
-**Siguiente paso:** implementar M20-01/M20-02 y la acción de digest en la landing antes de preparar el commit final.
+**Siguiente paso:** validar M20-08 y M20-09 para que el digest incluya el paquete multimedia antes de preparar el commit final.
+
+### 2026-08-30 · El historial completo llega al dashboard
+
+**Qué construimos:** el dashboard ahora permite seleccionar un repositorio y lanzar una compilación histórica autenticada. El backend pagina el historial de GitHub, recupera la evidencia de cada commit, persiste los cambios asociados al usuario y compone un solo digest con una historia, un post y una aprobación de WhatsApp.
+
+**Decisión:** el digest corre como tarea de fondo para no bloquear la interfaz. La ejecución se reserva con una huella basada en repositorio, commits y preferencias; repetir la misma solicitud reutiliza el resultado y no crea una segunda narrativa.
+
+**Evidencia:** `historicalDigests` quedó desplegado en Convex producción, el dashboard muestra `Construir historia completa`, el envío respeta la ventana WhatsApp de 24 horas y `pnpm check` pasa con 57 pruebas, typecheck de Convex/Python y build de Next.js.
+
+**Momento de demo:** se elige `DiogoFabricioAG/commit-content-creator`, se pulsa **Compilar**, la actividad muestra el avance y WhatsApp recibe una narrativa sobre la evolución del proyecto, no una lista de hashes ni un mensaje por commit.
+
+**Siguiente paso:** completar el paquete multimedia del digest —enlaces, imagen, video y arquitectura— y luego reservar el commit `final` para el cierre.
 
 ### 2026-08-29 · La historia también necesita una vista de arquitectura
 
