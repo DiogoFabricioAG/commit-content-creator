@@ -68,8 +68,9 @@ class KapsoClient:
         to_phone: str,
         body: str,
         buttons: list[dict[str, str]],
+        image_url: str | None = None,
     ) -> KapsoOutboundMessage:
-        """Send reply buttons while the user-initiated WhatsApp window is open."""
+        """Send reply buttons, optionally with an image header."""
         if not 1 <= len(buttons) <= 3:
             raise ValueError("WhatsApp interactive messages require one to three buttons")
 
@@ -113,6 +114,11 @@ class KapsoClient:
                 "action": {"buttons": normalized_buttons},
             },
         }
+        if image_url:
+            payload["interactive"]["header"] = {
+                "type": "image",
+                "image": {"link": image_url},
+            }
 
         with httpx.Client(timeout=10.0) as client:
             response = client.post(
@@ -206,49 +212,37 @@ class KapsoClient:
         version: int = 1,
         image_url: str | None = None,
     ) -> KapsoOutboundMessage:
-        header = f'🔥 Encontré una historia para LinkedIn (V{version}):\n\n"{story_title}"'
+        if version <= 1:
+            header = f'🔥 Encontré una historia para LinkedIn (V1):\n\n"{story_title}"'
+        else:
+            header = (
+                f'🔄 Aquí tienes los cambios propuestos para la V{version}:\n\n'
+                f'"{story_title}"'
+            )
         full_message = (
             f"{header}\n\n{post_body}\n\n"
             "Revisa el borrador y elige una acción. También puedes responder con texto."
         )
-        if image_url:
-            self.send_image(
-                to_phone,
-                image_url,
-                "🖼️ Imagen propuesta para acompañar la publicación.",
-            )
-        # Keep the draft in a regular text message. WhatsApp interactive body
-        # text has a tighter limit, and Kapso may reject a long generated post.
-        # Preserve its ID so a temporary button/rate-limit failure does not
-        # make the webhook resend the same story on every inbound message.
-        draft_message = self.send_message(to_phone, full_message)
         try:
             return self.send_interactive_buttons(
                 to_phone,
-                f"¿Qué hacemos con el borrador V{version}?",
+                full_message,
                 [
                     {"id": "approval_review", "title": "Revisar"},
                     {"id": "approval_publish", "title": "Publicar"},
                     {"id": "approval_reject", "title": "Descartar"},
                 ],
+                image_url=image_url,
             )
         except httpx.HTTPStatusError:
-            # A text fallback keeps the approval flow usable if Kapso/Meta
-            # temporarily rejects an interactive payload.
+            # Keep text and image together if Meta/Kapso rejects the richer
+            # interactive payload, for example because the body is too long.
             logger.warning(
-                "Falling back to text approval instructions for %s", to_phone
+                "Falling back to a single media/text draft for %s", to_phone
             )
-            try:
-                return self.send_message(
-                    to_phone,
-                    "Puedes responder con: Publicar, Revisar o Descartar.",
-                )
-            except httpx.HTTPStatusError:
-                logger.warning(
-                    "Draft text was delivered but approval controls were rate-limited for %s",
-                    to_phone,
-                )
-                return draft_message
+            if image_url:
+                return self.send_image(to_phone, image_url, full_message)
+            return self.send_message(to_phone, full_message)
 
     def send_published_confirmation(
         self,
