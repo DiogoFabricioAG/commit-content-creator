@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
 
     openai_api_key: str | None = None
-    openai_model: str = "gpt-4o"
+    openai_model: str = "gpt-5.6-luna"
     openai_image_model: str = "gpt-image-2"
     openai_image_size: str = "1536x1024"
     openai_image_quality: Literal["low", "medium", "high"] = "low"
