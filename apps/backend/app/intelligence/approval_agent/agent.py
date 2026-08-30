@@ -1,8 +1,51 @@
 import json
-import re
+import logging
+from typing import Any, cast
 
 from app.config import Settings
-from app.schemas.approval import ApprovalDecision
+from app.schemas.approval import ApprovalDecision, VisualRequest
+
+logger = logging.getLogger(__name__)
+
+
+VISUAL_REQUEST_TOOL: dict[str, Any] = {
+    "type": "function",
+    "function": {
+        "name": "request_visual_asset",
+        "description": (
+            "Request a visual asset when the user naturally asks for an image, infographic, "
+            "architecture diagram, flow diagram, illustration, or to create and attach a visual "
+            "to the draft. Understand the meaning of the request; do not require exact keywords. "
+            "Preserve the user's complete visual direction in instruction."
+        ),
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "image",
+                        "infographic",
+                        "architecture_diagram",
+                        "flow_diagram",
+                    ],
+                    "description": "The visual format that best matches the user's request",
+                },
+                "instruction": {
+                    "type": "string",
+                    "description": "The full visual instruction extracted from the user's message",
+                },
+                "attach_to_draft": {
+                    "type": "boolean",
+                    "description": "Whether the generated visual should be attached to the draft",
+                },
+            },
+            "required": ["kind", "instruction", "attach_to_draft"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 
 class ApprovalAgent:
@@ -13,19 +56,27 @@ class ApprovalAgent:
         self,
         message: str,
         current_draft: str | None = None,
+        awaiting_revision_feedback: bool = False,
     ) -> ApprovalDecision:
-        if self.settings.openai_api_key:
-            try:
-                return self._interpret_with_llm(message, current_draft)
-            except Exception:
-                pass
+        if not self.settings.openai_api_key:
+            return self._safe_fallback(message, awaiting_revision_feedback)
 
-        return self._interpret_heuristic(message)
+        try:
+            return self._interpret_with_llm(
+                message,
+                current_draft,
+                awaiting_revision_feedback=awaiting_revision_feedback,
+            )
+        except Exception as error:
+            logger.warning("Approval agent could not interpret WhatsApp message: %s", error)
+            return self._safe_fallback(message, awaiting_revision_feedback)
 
     def _interpret_with_llm(
         self,
         message: str,
         current_draft: str | None,
+        *,
+        awaiting_revision_feedback: bool,
     ) -> ApprovalDecision:
         from openai import OpenAI
 
@@ -36,95 +87,79 @@ class ApprovalAgent:
                 {
                     "role": "system",
                     "content": (
-                        "You are an Approval Intent Classifier for a WhatsApp publishing assistant. "
-                        "Classify user responses regarding a LinkedIn post draft.\n"
+                        "You are LaborIN's natural-language WhatsApp publishing agent. "
+                        "Understand Spanish conversationally and classify the user's intent "
+                        "without requiring exact words or keyword commands.\n"
                         "Possible intents:\n"
                         "- approve: Explicit approval to publish now (e.g. 'publícalo', 'ta bueno dale', 'sí, ahora sí', 'aprobado', 'go').\n"
                         "- revise: User requests changes or corrections (e.g. 'está muy largo', 'hazlo más corto', 'quita la segunda parte', 'cambia el inicio').\n"
                         "- reject: Explicit decision NOT to publish (e.g. 'no publiques eso', 'cancela', 'no').\n"
                         "- hold: Delay or save for later (e.g. 'déjalo para mañana', 'luego lo veo').\n"
                         "- clarify: Ambiguous, unclear, questions, or low confidence.\n\n"
-                        "CRITICAL RULE: If intent is ambiguous or not 100% clear approval, NEVER classify as approve. Output JSON with keys: intent, feedback (string or null), confidence (0.0 to 1.0), reasoning."
+                        "- generate_visual: The user asks to create, attach, or include a visual asset "
+                        "such as an image, infographic, architecture diagram, flow diagram, or illustration. "
+                        "When this applies, call request_visual_asset and preserve the user's complete "
+                        "visual direction in its instruction.\n\n"
+                        "If awaiting revision feedback is true, interpret a normal non-empty response "
+                        "as revision feedback unless the user clearly approves or rejects publication.\n"
+                        "If intent is ambiguous or not 100% clear approval, NEVER classify as approve. "
+                        "When no tool is needed, output JSON with keys: intent, feedback (string or null), "
+                        "confidence (0.0 to 1.0), reasoning."
                     ),
                 },
                 {
                     "role": "user",
-                    "content": f"User WhatsApp message: {message}\nCurrent Draft:\n{current_draft or ''}",
+                    "content": (
+                        f"User WhatsApp message: {message}\n"
+                        f"Current Draft:\n{current_draft or ''}\n"
+                        f"Awaiting revision feedback: {str(awaiting_revision_feedback).lower()}"
+                    ),
                 },
             ],
+            tools=cast(Any, [VISUAL_REQUEST_TOOL]),
+            tool_choice="auto",
+            parallel_tool_calls=False,
             response_format={"type": "json_object"},
             temperature=0.0,
         )
 
-        content = response.choices[0].message.content or "{}"
+        message_response = response.choices[0].message
+        raw_tool_calls = message_response.tool_calls or []
+        for raw_tool_call in raw_tool_calls:
+            tool_call = cast(Any, raw_tool_call)
+            if (
+                getattr(tool_call, "type", None) != "function"
+                or getattr(tool_call.function, "name", None) != "request_visual_asset"
+            ):
+                continue
+            tool_arguments = json.loads(tool_call.function.arguments)
+            visual_request = VisualRequest.model_validate(tool_arguments)
+            return ApprovalDecision(
+                intent="generate_visual",
+                confidence=0.98,
+                reasoning="GPT interpretó que el usuario pidió un recurso visual.",
+                visual_request=visual_request,
+            )
+
+        content = message_response.content or "{}"
         data = json.loads(content)
         return ApprovalDecision.model_validate(data)
 
-    def _interpret_heuristic(self, message: str) -> ApprovalDecision:
-        clean = message.strip().lower()
-
-        # Approval patterns (explicit approval)
-        approve_patterns = [
-            r"\b(ta\s+bueno|publ[ií]calo|publicalo|publica|dale|aprobado|aprobada|adelante|go|s[ií],?\s+ahora\s+s[ií]|lito|listo|de\s+una|m[aá]ndalo)\b",
-            r"^(s[ií]|si|ok|yes|👍|🚀|✅)$",
-        ]
-
-        # Revision patterns
-        revise_patterns = [
-            r"\b(revisar?|review|corto|largo|resume|resumen|cambia|quita|agrega|modifica|mejora|segundo\s+p[aá]rrafo|inicio|final|tono|m[aá]s\s+t[eé]cnico|corporativo)\b",
-            r"\b(hazlo|hazla|ponle|s[aá]cale)\b",
-        ]
-
-        # Rejection patterns
-        reject_patterns = [
-            r"\b(no\s+publiques|no\s+lo\s+publiques|cancela|cancelar|rechazado|no\s+quiero|b[oó]rralo|desc[aá]rtalo)\b",
-            r"^no$",
-        ]
-
-        # Hold / Defer patterns
-        hold_patterns = [
-            r"\b(ma[ñn]ana|despu[eé]s|luego|m[aá]s\s+tarde|pausa|espera|gu[aá]rdalo)\b",
-        ]
-
-        # 1. Check Rejection first
-        if any(re.search(p, clean) for p in reject_patterns):
-            return ApprovalDecision(
-                intent="reject",
-                feedback=message,
-                confidence=0.95,
-                reasoning="Usuario rechazó explícitamente la publicación.",
-            )
-
-        # 2. Check Revision
-        if any(re.search(p, clean) for p in revise_patterns):
+    @staticmethod
+    def _safe_fallback(
+        message: str,
+        awaiting_revision_feedback: bool,
+    ) -> ApprovalDecision:
+        if awaiting_revision_feedback and message.strip():
             return ApprovalDecision(
                 intent="revise",
                 feedback=message,
-                confidence=0.92,
-                reasoning="Usuario solicitó cambios o ajustes al borrador.",
+                confidence=0.7,
+                reasoning="Se tomó el mensaje como feedback del borrador pendiente de revisión.",
             )
-
-        # 3. Check Hold
-        if any(re.search(p, clean) for p in hold_patterns):
-            return ApprovalDecision(
-                intent="hold",
-                feedback=message,
-                confidence=0.90,
-                reasoning="Usuario solicitó pausar o revisar más tarde.",
-            )
-
-        # 4. Check Explicit Approval
-        if any(re.search(p, clean) for p in approve_patterns):
-            return ApprovalDecision(
-                intent="approve",
-                confidence=0.95,
-                reasoning="Usuario aprobó explícitamente la publicación.",
-            )
-
-        # 5. Fallback to Clarify (Safe: Never publish on ambiguous input)
         return ApprovalDecision(
             intent="clarify",
             feedback=message,
-            confidence=0.5,
-            reasoning="Respuesta ambigua o no reconocida; se requiere aclaración.",
+            confidence=0.0,
+            reasoning="El agente de IA no está disponible; no se adivinó una acción por palabras clave.",
         )

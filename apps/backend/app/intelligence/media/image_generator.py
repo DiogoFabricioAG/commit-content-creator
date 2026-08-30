@@ -26,6 +26,7 @@ class OpenAIImageGenerator:
         story_summary: str,
         post_body: str,
         user_request: str = "",
+        visual_kind: str = "image",
     ) -> GeneratedImage:
         if not self.settings.openai_api_key:
             raise ImageGenerationUnavailable("OPENAI_API_KEY is required for image generation")
@@ -37,6 +38,7 @@ class OpenAIImageGenerator:
             story_summary,
             post_body,
             user_request,
+            visual_kind,
         )
         client = OpenAI(api_key=self.settings.openai_api_key)
         result = client.images.generate(
@@ -65,10 +67,12 @@ class OpenAIImageGenerator:
         story_summary: str,
         post_body: str,
         user_request: str = "",
+        visual_kind: str = "image",
     ) -> str:
         requested_format = user_request.strip()[:1000] or "Create a visual summary of the story."
+        format_label = visual_kind.replace("_", " ")
         return (
-            "Create a polished infographic in Spanish for a software engineering LinkedIn post, "
+            f"Create a polished {format_label} in Spanish for a software engineering LinkedIn post, "
             "not a generic decorative illustration. Follow the user's visual request exactly. "
             "Include a concise, legible title, 3 to 5 information blocks, short labels, "
             "and a clear visual hierarchy. Use readable Spanish text taken from the story and "

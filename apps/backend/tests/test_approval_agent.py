@@ -1,30 +1,109 @@
+import json
+from typing import Any
+
 from app.config import Settings
 from app.intelligence.approval_agent.agent import ApprovalAgent
 
 
-def test_approval_agent_intents() -> None:
+class _FakeCompletions:
+    def __init__(self, captured: dict[str, Any]) -> None:
+        self.captured = captured
+
+    def create(self, **kwargs: Any) -> Any:
+        self.captured.update(kwargs)
+        tool_call = type(
+            "FakeToolCall",
+            (),
+            {
+                "type": "function",
+                "function": type(
+                    "FakeFunction",
+                    (),
+                    {
+                        "name": "request_visual_asset",
+                        "arguments": json.dumps(
+                            {
+                                "kind": "infographic",
+                                "instruction": (
+                                    "Convierte el cambio en una infografía con texto legible "
+                                    "y métricas reales del borrador."
+                                ),
+                                "attach_to_draft": True,
+                            }
+                        ),
+                    },
+                )(),
+            },
+        )()
+        message = type(
+            "FakeMessage",
+            (),
+            {"tool_calls": [tool_call], "content": None},
+        )()
+        return type(
+            "FakeResponse",
+            (),
+            {"choices": [type("FakeChoice", (), {"message": message})()]},
+        )()
+
+
+class _FakeOpenAI:
+    def __init__(self, *, api_key: str) -> None:
+        del api_key
+        captured: dict[str, Any] = {}
+        self.chat = type(
+            "FakeChat",
+            (),
+            {"completions": _FakeCompletions(captured)},
+        )()
+        self.captured = captured
+
+
+def test_agent_uses_gpt_tool_call_for_natural_visual_request(monkeypatch: Any) -> None:
+    fake_client: _FakeOpenAI | None = None
+
+    def build_client(*, api_key: str) -> _FakeOpenAI:
+        nonlocal fake_client
+        fake_client = _FakeOpenAI(api_key=api_key)
+        return fake_client
+
+    monkeypatch.setattr("openai.OpenAI", build_client)
+    settings = Settings(app_env="test", openai_api_key="test-key")
+    agent = ApprovalAgent(settings)
+
+    decision = agent.interpret_message(
+        "Quiero que esto se entienda de un vistazo: acompáñalo con una pieza visual "
+        "que explique el problema, el cambio y el resultado."
+    )
+
+    assert fake_client is not None
+    assert decision.intent == "generate_visual"
+    assert decision.visual_request is not None
+    assert decision.visual_request.kind == "infographic"
+    assert "texto legible" in decision.visual_request.instruction
+    tools = fake_client.captured["tools"]
+    assert tools[0]["function"]["name"] == "request_visual_asset"
+    assert tools[0]["function"]["strict"] is True
+
+
+def test_agent_does_not_guess_from_keywords_without_gpt() -> None:
     settings = Settings(app_env="test")
     agent = ApprovalAgent(settings)
 
-    # Approve
-    assert agent.interpret_message("Ta bueno, publícalo noma").intent == "approve"
-    assert agent.interpret_message("Sí, ahora sí").intent == "approve"
-    assert agent.interpret_message("publícalo").intent == "approve"
-    assert agent.interpret_message("👍").intent == "approve"
+    decision = agent.interpret_message("haz algo visual con esto")
 
-    # Revise
-    assert agent.interpret_message("Está muy largo, hazlo más corto").intent == "revise"
-    assert agent.interpret_message("Quita la segunda parte").intent == "revise"
-    assert agent.interpret_message("cambia el inicio").intent == "revise"
-    assert agent.interpret_message("Revisar").intent == "revise"
+    assert decision.intent == "clarify"
+    assert decision.feedback == "haz algo visual con esto"
 
-    # Reject
-    assert agent.interpret_message("No publiques eso").intent == "reject"
-    assert agent.interpret_message("cancela").intent == "reject"
 
-    # Hold
-    assert agent.interpret_message("Déjalo para mañana").intent == "hold"
+def test_revision_feedback_uses_conversation_state_without_keyword_matching() -> None:
+    settings = Settings(app_env="test")
+    agent = ApprovalAgent(settings)
 
-    # Ambiguous -> Clarify (Critical Safety Rule)
-    assert agent.interpret_message("mmm no sé").intent == "clarify"
-    assert agent.interpret_message("hola qué tal").intent == "clarify"
+    decision = agent.interpret_message(
+        "Enfatiza el beneficio para el equipo y conserva el tono cercano.",
+        awaiting_revision_feedback=True,
+    )
+
+    assert decision.intent == "revise"
+    assert decision.feedback == "Enfatiza el beneficio para el equipo y conserva el tono cercano."

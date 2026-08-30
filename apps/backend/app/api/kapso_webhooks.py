@@ -27,7 +27,6 @@ from app.whatsapp.kapso.client import KapsoClient
 from app.whatsapp.kapso.webhooks import (
     InvalidKapsoSignature,
     parse_kapso_inbound_messages,
-    requests_image_generation,
     verify_kapso_signature,
 )
 
@@ -475,17 +474,64 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         )
         return
 
-    # Explicit media command. This remains inside the user-initiated 24-hour
-    # window and attaches the generated asset to the current post version.
-    if requests_image_generation(inbound.body):
-        convex.record_approval_message(
-            approval_request_id=req_id,
-            direction="inbound",
-            message_id=inbound.message_id,
-            content=inbound.body,
-            interpreted_intent="generate_image",
+    # Buttons are deterministic actions. Every free-form WhatsApp message is
+    # interpreted by the AI agent, which can request a visual tool call.
+    button_decisions = {
+        "publish": ApprovalDecision(
+            intent="approve",
             confidence=1.0,
+            reasoning="Usuario pulsó el botón Publicar.",
+        ),
+        "reject": ApprovalDecision(
+            intent="reject",
+            confidence=1.0,
+            reasoning="Usuario pulsó el botón Descartar.",
+        ),
+        "review": ApprovalDecision(
+            intent="revise",
+            confidence=1.0,
+            reasoning="Usuario pulsó el botón Revisar.",
+        ),
+    }
+    decision = button_decisions.get(approval_action or "")
+    if decision is None:
+        decision = agent.interpret_message(
+            inbound.body,
+            draft_body,
+            awaiting_revision_feedback=awaiting_revision_feedback,
         )
+
+    convex.record_approval_message(
+        approval_request_id=req_id,
+        direction="inbound",
+        message_id=inbound.message_id,
+        content=inbound.body,
+        interpreted_intent=decision.intent,
+        confidence=decision.confidence,
+    )
+    convex.record_activity(
+        user_id=user_id,
+        type_="approval.intent.detected",
+        label=f"WhatsApp reply classified as '{decision.intent}' (confidence: {int(decision.confidence * 100)}%)",
+        status="completed",
+        metadata={
+            "intent": decision.intent,
+            "message": inbound.body,
+            "confidence": str(decision.confidence),
+        },
+    )
+
+    # A visual tool call stays inside the user-initiated 24-hour window and
+    # attaches the generated asset to the current post version.
+    if decision.intent == "generate_visual":
+        visual_request = decision.visual_request
+        if visual_request is None:
+            logger.warning("Visual intent without a structured visual request")
+            kapso_client.send_message(
+                inbound.from_phone,
+                "Entendí que quieres un recurso visual, pero necesito que me indiques qué debería mostrar.",
+            )
+            return
         try:
             story_id = str(post.get("storyId")) if post else ""
             story_data = (
@@ -505,7 +551,8 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 story_title=latest_title,
                 story_summary=story_summary,
                 post_body=draft_body,
-                user_request=inbound.body,
+                user_request=visual_request.instruction,
+                visual_kind=visual_request.kind,
             )
             stored_media = convex.upload_media(
                 content=generated_image.data,
@@ -536,9 +583,12 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
             convex.record_activity(
                 user_id=user_id,
                 type_="media.image.generated",
-                label="Generated image asset for the approved draft",
+                label=f"Generated {visual_request.kind} asset for the draft",
                 status="completed",
-                metadata={"postVersionId": current_version_id},
+                metadata={
+                    "postVersionId": current_version_id,
+                    "visualKind": visual_request.kind,
+                },
             )
             if outbound.message_id:
                 convex.record_approval_message(
@@ -560,53 +610,6 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 "La imagen no se pudo adjuntar en este intento. El borrador sigue disponible; inténtalo de nuevo en unos segundos.",
             )
         return
-
-    # 2. Interpret intent
-    button_decisions = {
-        "publish": ApprovalDecision(
-            intent="approve",
-            confidence=1.0,
-            reasoning="Usuario pulsó el botón Publicar.",
-        ),
-        "reject": ApprovalDecision(
-            intent="reject",
-            confidence=1.0,
-            reasoning="Usuario pulsó el botón Descartar.",
-        ),
-    }
-    button_decision = button_decisions.get(approval_action or "")
-    decision = button_decision
-    if decision is None and awaiting_revision_feedback and approval_action is None:
-        decision = ApprovalDecision(
-            intent="revise",
-            feedback=inbound.body,
-            confidence=0.95,
-            reasoning="El usuario respondió al prompt de revisión pendiente.",
-        )
-    if decision is None:
-        decision = agent.interpret_message(inbound.body, draft_body)
-
-    # Record message in Convex
-    convex.record_approval_message(
-        approval_request_id=req_id,
-        direction="inbound",
-        message_id=inbound.message_id,
-        content=inbound.body,
-        interpreted_intent=decision.intent,
-        confidence=decision.confidence,
-    )
-
-    convex.record_activity(
-        user_id=user_id,
-        type_="approval.intent.detected",
-        label=f"WhatsApp reply classified as '{decision.intent}' (confidence: {int(decision.confidence * 100)}%)",
-        status="completed",
-        metadata={
-            "intent": decision.intent,
-            "message": inbound.body,
-            "confidence": str(decision.confidence),
-        },
-    )
 
     if approval_action == "review":
         try:
