@@ -216,6 +216,15 @@ class ConvexGateway:
         )
         return cast(list[dict[str, Any]], result or [])
 
+    def list_commit_analyses_for_repository(
+        self, repository_id: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "commitAnalyses:listForRepository",
+            {"repositoryId": repository_id, "limit": limit},
+        )
+        return cast(list[dict[str, Any]], result or [])
+
     # Commit Intelligence
     def record_commit_analysis(
         self,
@@ -267,6 +276,15 @@ class ConvexGateway:
 
         result = self.client.mutation("storyClusters:record", payload)
         return cast(str, result)
+
+    def list_story_clusters_for_repository(
+        self, repository_id: str
+    ) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "storyClusters:listForRepository",
+            {"repositoryId": repository_id},
+        )
+        return cast(list[dict[str, Any]], result or [])
 
     def record_story(
         self,
