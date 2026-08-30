@@ -83,7 +83,7 @@ export function StoryDraftViewer({ userId }: StoryDraftViewerProps) {
       {/* Story Selector if multiple stories */}
       {stories.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {stories.map((s, idx) => (
+          {stories.map((s: { _id: string; title: string }, idx: number) => (
             <button
               key={s._id}
               type="button"
@@ -228,7 +228,7 @@ export function StoryDraftViewer({ userId }: StoryDraftViewerProps) {
               <History className="size-3.5 text-zinc-500" />
               <span className="text-[11px] text-zinc-500">Historial de iteraciones:</span>
               <div className="flex items-center gap-1.5">
-                {allPostVersions.map((v) => (
+                {allPostVersions.map((v: { _id: string; version: number; createdAt: number }) => (
                   <span
                     key={v._id}
                     className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-mono text-zinc-400"
