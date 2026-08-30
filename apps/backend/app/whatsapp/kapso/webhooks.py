@@ -87,15 +87,46 @@ def _parse_kapso_message(payload: dict[str, Any]) -> KapsoInboundMessage | None:
         if isinstance(raw_button_reply, dict)
         else {}
     )
+    raw_interactive_data = message.get("interactive_data") or kapso.get(
+        "interactive_data"
+    )
+    interactive_data = (
+        cast(dict[str, Any], raw_interactive_data)
+        if isinstance(raw_interactive_data, dict)
+        else {}
+    )
+    raw_data_button_reply = interactive_data.get("button_reply")
+    data_button_reply = (
+        cast(dict[str, Any], raw_data_button_reply)
+        if isinstance(raw_data_button_reply, dict)
+        else {}
+    )
+    button_id = (
+        button_reply.get("id")
+        or data_button_reply.get("id")
+        or message.get("reply_option_id")
+        or kapso.get("reply_option_id")
+        or message.get("button_id")
+        or kapso.get("button_id")
+    )
+    button_title = (
+        button_reply.get("title")
+        or data_button_reply.get("title")
+        or message.get("reply_option_title")
+        or kapso.get("reply_option_title")
+        or message.get("button_title")
+        or kapso.get("button_title")
+    )
     for candidate in [
         message.get("body"),
         text_obj.get("body") if text_obj else None,
         message.get("content"),
         message.get("text_body"),
+        kapso.get("content"),
         data.get("body"),
         data.get("text"),
         payload.get("body"),
-        button_reply.get("title"),
+        button_title,
     ]:
         if isinstance(candidate, str) and candidate.strip():
             body = candidate.strip()
@@ -108,9 +139,9 @@ def _parse_kapso_message(payload: dict[str, Any]) -> KapsoInboundMessage | None:
         or f"msg_{abs(hash(body + from_phone))}"
     )
     timestamp_value = message.get("timestamp") or data.get("timestamp")
-    message_type = str(message.get("type") or ("interactive" if button_reply else "text"))
-    button_id = button_reply.get("id")
-    button_title = button_reply.get("title")
+    message_type = str(
+        message.get("type") or ("interactive" if button_id else "text")
+    )
 
     if not from_phone or not body:
         return None
@@ -150,5 +181,4 @@ def parse_kapso_inbound_message(payload: dict[str, Any]) -> KapsoInboundMessage 
 def requests_image_generation(message: str) -> bool:
     lowered = message.lower()
     return "imagen" in lowered or "image" in lowered or "foto" in lowered or "picture" in lowered
-
 

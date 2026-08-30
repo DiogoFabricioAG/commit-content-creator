@@ -16,6 +16,7 @@ def test_approval_agent_intents() -> None:
     assert agent.interpret_message("Está muy largo, hazlo más corto").intent == "revise"
     assert agent.interpret_message("Quita la segunda parte").intent == "revise"
     assert agent.interpret_message("cambia el inicio").intent == "revise"
+    assert agent.interpret_message("Revisar").intent == "revise"
 
     # Reject
     assert agent.interpret_message("No publiques eso").intent == "reject"

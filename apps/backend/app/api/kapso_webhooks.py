@@ -60,6 +60,26 @@ def _inbound_context_message_id(inbound: KapsoInboundMessage) -> str | None:
     return None
 
 
+def _approval_action(inbound: KapsoInboundMessage) -> str | None:
+    """Return a stable approval action across Kapso webhook payload variants."""
+    candidates = (inbound.button_id, inbound.button_title, inbound.body)
+    for candidate in candidates:
+        if not isinstance(candidate, str):
+            continue
+        normalized = "".join(
+            character
+            for character in unicodedata.normalize("NFKD", candidate.lower())
+            if not unicodedata.combining(character)
+        ).strip()
+        if normalized in {"approval_publish", "publicar", "publicalo"}:
+            return "publish"
+        if normalized in {"approval_review", "revisar", "review"}:
+            return "review"
+        if normalized in {"approval_reject", "descartar", "descartalo"}:
+            return "reject"
+    return None
+
+
 def _requests_image_generation(message: str) -> bool:
     normalized = "".join(
         character
@@ -345,14 +365,12 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         inbound_message_id=inbound.message_id,
     )
 
+    approval_action = _approval_action(inbound)
+
     # Approval actions always take precedence over queue delivery. Previously
     # this path re-sent every already-delivered legacy draft before handling a
     # button, causing duplicate stories and preventing publish/reject/review.
-    is_approval_action = inbound.button_id in {
-        "approval_publish",
-        "approval_review",
-        "approval_reject",
-    } or inbound.body.strip().lower() in {"publicar", "revisar", "descartar"}
+    is_approval_action = approval_action is not None
 
     queued_requests = [
         request
@@ -521,20 +539,18 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
 
     # 2. Interpret intent
     button_decisions = {
-        "approval_publish": ApprovalDecision(
+        "publish": ApprovalDecision(
             intent="approve",
             confidence=1.0,
             reasoning="Usuario pulsó el botón Publicar.",
         ),
-        "approval_reject": ApprovalDecision(
+        "reject": ApprovalDecision(
             intent="reject",
             confidence=1.0,
             reasoning="Usuario pulsó el botón Descartar.",
         ),
     }
-    button_decision = (
-        button_decisions.get(inbound.button_id) if inbound.button_id else None
-    )
+    button_decision = button_decisions.get(approval_action or "")
     decision = button_decision or agent.interpret_message(inbound.body, draft_body)
 
     # Record message in Convex
@@ -559,7 +575,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         },
     )
 
-    if inbound.button_id == "approval_review":
+    if approval_action == "review":
         try:
             outbound = kapso_client.send_revision_prompt(inbound.from_phone)
         except httpx.HTTPStatusError as error:

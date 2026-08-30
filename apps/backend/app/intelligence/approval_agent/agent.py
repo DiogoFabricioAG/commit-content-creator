@@ -71,7 +71,7 @@ class ApprovalAgent:
 
         # Revision patterns
         revise_patterns = [
-            r"\b(corto|largo|resume|resumen|cambia|quita|agrega|modifica|mejora|segundo\s+p[aá]rrafo|inicio|final|tono|m[aá]s\s+t[eé]cnico|corporativo)\b",
+            r"\b(revisar?|review|corto|largo|resume|resumen|cambia|quita|agrega|modifica|mejora|segundo\s+p[aá]rrafo|inicio|final|tono|m[aá]s\s+t[eé]cnico|corporativo)\b",
             r"\b(hazlo|hazla|ponle|s[aá]cale)\b",
         ]
 

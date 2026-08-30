@@ -151,3 +151,24 @@ def test_parse_kapso_interactive_button_reply() -> None:
     assert inbound.button_id == "approval_publish"
     assert inbound.button_title == "Publicar"
     assert inbound.body == "Publicar"
+
+
+def test_parse_kapso_flattened_button_reply_and_content() -> None:
+    payload = {
+        "phone_number_id": "123456789",
+        "message": {
+            "id": "wamid.button-2",
+            "type": "interactive",
+            "reply_option_id": "approval_review",
+            "reply_option_title": "Revisar",
+            "kapso": {"content": "Revisar"},
+        },
+        "conversation": {"phone_number": "+51923790280"},
+    }
+
+    inbound = parse_kapso_inbound_message(payload)
+
+    assert inbound is not None
+    assert inbound.button_id == "approval_review"
+    assert inbound.button_title == "Revisar"
+    assert inbound.body == "Revisar"
