@@ -17,8 +17,12 @@ export const record = mutation({
     status: activityStatus,
     metadata: v.optional(v.any()),
   },
-
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("Unauthorized: Invalid or non-existent userId");
+    }
+
     return await ctx.db.insert("activityEvents", {
       ...args,
       timestamp: Date.now(),
@@ -32,6 +36,11 @@ export const listRecent = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return [];
+    }
+
     return await ctx.db
       .query("activityEvents")
       .withIndex("by_user_timestamp", (q) => q.eq("userId", args.userId))

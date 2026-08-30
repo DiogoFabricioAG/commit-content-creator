@@ -36,6 +36,11 @@ export const getForUser = query({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return null;
+    }
+
     return await ctx.db
       .query("userPreferences")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -49,6 +54,12 @@ export const save = mutation({
     ...preferenceValidators,
   },
   handler: async (ctx, args) => {
+    // Authorize user existence
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("Unauthorized: Invalid or non-existent userId");
+    }
+
     const existing = await ctx.db
       .query("userPreferences")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))

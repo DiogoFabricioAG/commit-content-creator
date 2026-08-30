@@ -1,9 +1,8 @@
-import uuid
-
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 
-from app.config import get_settings
+from app.auth.session import OAUTH_STATE_COOKIE_NAME, SessionError, SessionManager
+from app.config import Settings, get_settings
 from app.integrations.convex_client import ConvexGateway
 from app.linkedin.oauth import LinkedInOAuth
 from app.linkedin.security import encrypt_token
@@ -11,18 +10,51 @@ from app.linkedin.security import encrypt_token
 router = APIRouter(prefix="/auth/linkedin", tags=["linkedin"])
 
 
+def _frontend_base_url(settings: Settings) -> str:
+    app_env = settings.app_env
+    redirect_uri = settings.linkedin_redirect_uri
+    return "https://laborin.meowlab.tech" if app_env == "production" else (
+        "http://localhost:3000" if "localhost" in redirect_uri else "https://laborin.meowlab.tech"
+    )
+
+
+def _login_redirect(settings: Settings, error: str) -> RedirectResponse:
+    response = RedirectResponse(
+        url=f"{_frontend_base_url(settings)}/login?error={error}",
+        status_code=status.HTTP_302_FOUND,
+    )
+    SessionManager(settings).clear_oauth_state_cookie(response)
+    return response
+
+
+def _dashboard_redirect(settings: Settings) -> RedirectResponse:
+    response = RedirectResponse(
+        url=f"{_frontend_base_url(settings)}/dashboard?tab=channels&status=linkedin_connected",
+        status_code=status.HTTP_302_FOUND,
+    )
+    SessionManager(settings).clear_oauth_state_cookie(response)
+    return response
+
+
 @router.get("/login")
-async def linkedin_login(userId: str | None = Query(None)) -> RedirectResponse:
+async def linkedin_login(request: Request) -> RedirectResponse:
     settings = get_settings()
+    sessions = SessionManager(settings)
     oauth = LinkedInOAuth(settings)
-    nonce = str(uuid.uuid4())
-    state = f"{userId}:{nonce}" if userId else nonce
+    try:
+        user_id = sessions.require_session_user_id(request)
+        state, nonce = sessions.create_oauth_state(user_id, "linkedin")
+    except SessionError:
+        return _login_redirect(settings, "session_required")
     url = oauth.get_authorization_url(state)
-    return RedirectResponse(url)
+    response = RedirectResponse(url, status_code=status.HTTP_302_FOUND)
+    sessions.set_oauth_state_cookie(response, nonce)
+    return response
 
 
 @router.get("/callback")
 async def linkedin_callback(
+    request: Request,
     code: str = Query(...),
     state: str = Query(...),
 ) -> RedirectResponse:
@@ -30,6 +62,21 @@ async def linkedin_callback(
     settings = get_settings()
     convex = ConvexGateway(settings)
     oauth = LinkedInOAuth(settings)
+    sessions = SessionManager(settings)
+
+    try:
+        oauth_state = sessions.verify_oauth_state(
+            state,
+            "linkedin",
+            request.cookies.get(OAUTH_STATE_COOKIE_NAME),
+            request,
+        )
+        user_id = oauth_state.user_id
+    except SessionError:
+        return _login_redirect(settings, "oauth_state_invalid")
+
+    if not convex.is_configured or not convex.get_user_by_id(user_id):
+        return _login_redirect(settings, "session_user_missing")
 
     try:
         token_data = oauth.exchange_code_for_token(code)
@@ -39,15 +86,7 @@ async def linkedin_callback(
             detail=f"LinkedIn token exchange failed: {error}",
         ) from error
 
-    user_id = None
-    if state and ":" in state:
-        extracted = state.split(":")[0]
-        if extracted and len(extracted) > 5:
-            user_id = extracted
-
     if convex.is_configured:
-        if not user_id:
-            user_id = convex.get_or_create_default_user()
         encrypted_token = encrypt_token(
             token_data.access_token,
             settings.token_encryption_key,
@@ -70,11 +109,4 @@ async def linkedin_callback(
             status="completed",
         )
 
-    base_url = "https://laborin.meowlab.tech"
-    if settings.app_env != "production" and "localhost" in settings.linkedin_redirect_uri:
-        base_url = "http://localhost:3000"
-
-    user_param = f"&userId={user_id}" if user_id else ""
-    redirect_target = f"{base_url}/dashboard?tab=channels&status=linkedin_connected{user_param}"
-
-    return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+    return _dashboard_redirect(settings)

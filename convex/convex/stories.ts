@@ -28,6 +28,11 @@ export const record = mutation({
     status: storyStatus,
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("Unauthorized: Invalid or non-existent userId");
+    }
+
     return await ctx.db.insert("stories", {
       ...args,
       detectedAt: Date.now(),
@@ -42,12 +47,31 @@ export const getById = query({
   },
 });
 
+export const getByIdForUser = query({
+  args: {
+    storyId: v.id("stories"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const story = await ctx.db.get(args.storyId);
+    if (!story || story.userId !== args.userId) {
+      return null;
+    }
+    return story;
+  },
+});
+
 export const listForUser = query({
   args: {
     userId: v.id("users"),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return [];
+    }
+
     return await ctx.db
       .query("stories")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))

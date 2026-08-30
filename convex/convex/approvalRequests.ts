@@ -21,6 +21,11 @@ export const record = mutation({
     kapsoOutboundMessageId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("Unauthorized: Invalid or non-existent userId");
+    }
+
     return await ctx.db.insert("approvalRequests", {
       ...args,
       createdAt: Date.now(),
@@ -55,6 +60,22 @@ export const listPendingForPhone = query({
         q.eq("recipientPhone", args.recipientPhone).eq("status", "pending"),
       )
       .order("asc")
+      .collect();
+  },
+});
+
+export const listForUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return [];
+    }
+
+    return await ctx.db
+      .query("approvalRequests")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
       .collect();
   },
 });

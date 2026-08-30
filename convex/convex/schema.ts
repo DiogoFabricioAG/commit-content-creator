@@ -46,6 +46,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_user_full_name", ["userId", "fullName"])
     .index("by_github_repository", ["githubRepositoryId"])
     .index("by_full_name", ["fullName"]),
 

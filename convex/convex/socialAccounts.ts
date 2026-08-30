@@ -12,6 +12,11 @@ export const upsert = mutation({
     scopes: v.array(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("Unauthorized: Invalid or non-existent userId");
+    }
+
     const existing = await ctx.db
       .query("socialAccounts")
       .withIndex("by_user_provider", (q) =>
@@ -42,6 +47,11 @@ export const getByUserAndProvider = query({
     provider: v.literal("linkedin"),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return null;
+    }
+
     return await ctx.db
       .query("socialAccounts")
       .withIndex("by_user_provider", (q) =>

@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     linkedin_api_version: str = "202608"
 
     token_encryption_key: str | None = None
+    session_secret: str | None = None
     default_user_phone: str = "+51999888777"
 
     model_config = SettingsConfigDict(

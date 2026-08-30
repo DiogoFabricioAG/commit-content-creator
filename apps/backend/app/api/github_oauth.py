@@ -1,20 +1,59 @@
-import uuid
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import RedirectResponse
 
-from app.config import get_settings
+from app.auth.session import (
+    OAUTH_STATE_COOKIE_NAME,
+    SessionError,
+    SessionManager,
+)
+from app.config import Settings, get_settings
 from app.integrations.convex_client import ConvexGateway
 
 router = APIRouter(prefix="/auth/github", tags=["github"])
 
 
+def _frontend_base_url(settings: Settings) -> str:
+    app_env = settings.app_env
+    redirect_uri = settings.github_redirect_uri
+    return "https://laborin.meowlab.tech" if app_env == "production" else (
+        "http://localhost:3000" if "localhost" in redirect_uri else "https://laborin.meowlab.tech"
+    )
+
+
+def _login_redirect(settings: Settings, error: str) -> RedirectResponse:
+    response = RedirectResponse(
+        url=f"{_frontend_base_url(settings)}/login?error={error}",
+        status_code=status.HTTP_302_FOUND,
+    )
+    SessionManager(settings).clear_oauth_state_cookie(response)
+    return response
+
+
+def _dashboard_redirect(
+    settings: Settings,
+    *,
+    status_value: str,
+) -> RedirectResponse:
+    response = RedirectResponse(
+        url=f"{_frontend_base_url(settings)}/dashboard?tab=channels&status={status_value}",
+        status_code=status.HTTP_302_FOUND,
+    )
+    SessionManager(settings).clear_oauth_state_cookie(response)
+    return response
+
+
 @router.get("/login")
-async def github_login(userId: str | None = Query(None)) -> RedirectResponse:
+async def github_login(request: Request) -> RedirectResponse:
     settings = get_settings()
-    nonce = str(uuid.uuid4())
-    state = f"{userId}:{nonce}" if userId else nonce
+    sessions = SessionManager(settings)
+    try:
+        user_id = sessions.require_session_user_id(request)
+        state, nonce = sessions.create_oauth_state(user_id, "github")
+    except SessionError:
+        return _login_redirect(settings, "session_required")
 
     if settings.github_client_id:
         redirect_uri = settings.github_redirect_uri
@@ -28,15 +67,26 @@ async def github_login(userId: str | None = Query(None)) -> RedirectResponse:
             f"&scope=read:user,repo,read:org"
             f"&state={state}"
         )
-        return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
+        response = RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
+        sessions.set_oauth_state_cookie(response, nonce)
+        return response
 
     # Fallback to GitHub App installation link
     app_url = settings.github_app_url or "https://github.com/apps/laborin-ver1/installations/new"
-    return RedirectResponse(url=app_url, status_code=status.HTTP_302_FOUND)
+    parts = urlsplit(app_url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query["state"] = state
+    app_url_with_state = urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
+    )
+    response = RedirectResponse(url=app_url_with_state, status_code=status.HTTP_302_FOUND)
+    sessions.set_oauth_state_cookie(response, nonce)
+    return response
 
 
 @router.get("/callback")
 async def github_callback(
+    request: Request,
     code: str | None = Query(None),
     state: str | None = Query(None),
     installation_id: str | None = Query(None),
@@ -44,40 +94,36 @@ async def github_callback(
     settings = get_settings()
     convex = ConvexGateway(settings)
 
-    base_url = "https://laborin.meowlab.tech"
-    if settings.app_env != "production" and "localhost" in settings.linkedin_redirect_uri:
-        base_url = "http://localhost:3000"
+    if not state:
+        return _login_redirect(settings, "oauth_state_invalid")
 
-    user_id = None
-    if state and ":" in state:
-        extracted = state.split(":")[0]
-        if extracted and len(extracted) > 5:
-            user_id = extracted
+    sessions = SessionManager(settings)
+    try:
+        oauth_state = sessions.verify_oauth_state(
+            state,
+            "github",
+            request.cookies.get(OAUTH_STATE_COOKIE_NAME),
+            request,
+        )
+        user_id = oauth_state.user_id
+    except SessionError:
+        return _login_redirect(settings, "oauth_state_invalid")
 
-    if convex.is_configured and not user_id:
-        user_id = convex.get_or_create_default_user()
+    if not convex.is_configured or not convex.get_user_by_id(user_id):
+        return _login_redirect(settings, "session_user_missing")
 
     # If installed via GitHub App
     if installation_id and not code:
-        if convex.is_configured and user_id:
-            convex.record_activity(
-                user_id=user_id,
-                type_="github.app.installed",
-                label=f"GitHub App installed with ID {installation_id}",
-                status="completed",
-            )
-        user_param = f"&userId={user_id}" if user_id else ""
-        return RedirectResponse(
-            url=f"{base_url}/dashboard?tab=channels&status=github_connected{user_param}",
-            status_code=status.HTTP_302_FOUND,
+        convex.record_activity(
+            user_id=user_id,
+            type_="github.app.installed",
+            label=f"GitHub App installed with ID {installation_id}",
+            status="completed",
         )
+        return _dashboard_redirect(settings, status_value="github_connected")
 
     if not code:
-        user_param = f"&userId={user_id}" if user_id else ""
-        return RedirectResponse(
-            url=f"{base_url}/dashboard?tab=channels&status=github_connected{user_param}",
-            status_code=status.HTTP_302_FOUND,
-        )
+        return _dashboard_redirect(settings, status_value="github_connected")
 
     # Exchange code for access token if client credentials exist
     access_token = None
@@ -143,8 +189,4 @@ async def github_callback(
         except Exception:
             pass
 
-    user_param = f"&userId={user_id}" if user_id else ""
-    return RedirectResponse(
-        url=f"{base_url}/dashboard?tab=channels&status=github_connected{user_param}",
-        status_code=status.HTTP_302_FOUND,
-    )
+    return _dashboard_redirect(settings, status_value="github_connected")
