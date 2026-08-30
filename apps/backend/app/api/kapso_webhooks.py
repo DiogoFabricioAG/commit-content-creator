@@ -4,6 +4,7 @@ import re
 import unicodedata
 from typing import Any, cast
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 
 from app.config import get_settings
@@ -32,6 +33,31 @@ from app.whatsapp.kapso.webhooks import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/webhooks/kapso", tags=["kapso"])
+
+
+def _inbound_context_message_id(inbound: KapsoInboundMessage) -> str | None:
+    raw_payload = inbound.raw_payload
+    containers: list[dict[str, Any]] = [raw_payload]
+    raw_data = raw_payload.get("data")
+    if isinstance(raw_data, dict):
+        containers.append(cast(dict[str, Any], raw_data))
+
+    for container in containers:
+        raw_message = container.get("message")
+        message = (
+            cast(dict[str, Any], raw_message)
+            if isinstance(raw_message, dict)
+            else container
+        )
+        raw_context = message.get("context") or container.get("context")
+        if not isinstance(raw_context, dict):
+            continue
+        context = cast(dict[str, Any], raw_context)
+        for key in ("id", "message_id", "messageId"):
+            value = context.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return None
 
 
 def _requests_image_generation(message: str) -> bool:
@@ -199,7 +225,7 @@ def _deliver_queued_approval(
     story_detector: StoryDetector,
     commit_analyzer: CommitAnalyzer,
     github_client: GitHubClient,
-) -> None:
+) -> bool:
     req_id = str(pending.get("_id"))
     post_id = str(pending.get("postId"))
     user_id = str(pending.get("userId"))
@@ -208,7 +234,7 @@ def _deliver_queued_approval(
     )
     if not post_version:
         logger.warning("Approval %s has no post version", req_id)
-        return
+        return False
 
     title = str(post_version.get("title") or "Historia técnica")
     body = str(post_version.get("body") or "")
@@ -224,12 +250,23 @@ def _deliver_queued_approval(
         body=body,
         version_num=version_num,
     )
-    outbound = kapso_client.send_draft_for_approval(
-        to_phone=inbound.from_phone,
-        story_title=title,
-        post_body=body,
-        version=version_num,
-    )
+    try:
+        outbound = kapso_client.send_draft_for_approval(
+            to_phone=inbound.from_phone,
+            story_title=title,
+            post_body=body,
+            version=version_num,
+        )
+    except httpx.HTTPStatusError as error:
+        logger.warning("Could not deliver queued approval %s: %s", req_id, error)
+        convex.record_activity(
+            user_id=user_id,
+            type_="approval.whatsapp.failed",
+            label="WhatsApp delivery temporarily rejected by Kapso",
+            status="failed",
+            metadata={"approvalRequestId": req_id},
+        )
+        return False
     if outbound.message_id:
         convex.set_approval_outbound_message_id(
             approval_request_id=req_id,
@@ -261,6 +298,7 @@ def _deliver_queued_approval(
             "trigger": "inbound_user_message",
         },
     )
+    return True
 
 
 def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
@@ -286,6 +324,16 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         return
 
     pending = pending_requests[-1]
+    context_message_id = _inbound_context_message_id(inbound)
+    if context_message_id:
+        pending = next(
+            (
+                request
+                for request in pending_requests
+                if request.get("kapsoOutboundMessageId") == context_message_id
+            ),
+            pending,
+        )
     req_id = str(pending.get("_id"))
     post_id = str(pending.get("postId"))
     user_id = str(pending.get("userId"))
@@ -297,42 +345,23 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         inbound_message_id=inbound.message_id,
     )
 
-    # Recover legacy drafts that were already sent before the format fix. They
-    # have an outbound message ID, so they would otherwise be skipped forever.
-    recovered_legacy = False
-    for delivered_request in pending_requests:
-        if not delivered_request.get("kapsoOutboundMessageId"):
-            continue
-        delivered_post_id = str(delivered_request.get("postId"))
-        delivered_version = convex.client.query(
-            "postVersions:getLatestForPost", {"postId": delivered_post_id}
-        )
-        if not delivered_version:
-            continue
-        delivered_title = str(delivered_version.get("title") or "Historia técnica")
-        delivered_body = str(delivered_version.get("body") or "")
-        if not ContentGenerator.is_legacy_draft(delivered_title, delivered_body):
-            continue
-        _deliver_queued_approval(
-            convex=convex,
-            kapso_client=kapso_client,
-            pending=delivered_request,
-            inbound=inbound,
-            content_gen=content_gen,
-            story_detector=story_detector,
-            commit_analyzer=commit_analyzer,
-            github_client=github_client,
-        )
-        recovered_legacy = True
+    # Approval actions always take precedence over queue delivery. Previously
+    # this path re-sent every already-delivered legacy draft before handling a
+    # button, causing duplicate stories and preventing publish/reject/review.
+    is_approval_action = inbound.button_id in {
+        "approval_publish",
+        "approval_review",
+        "approval_reject",
+    } or inbound.body.strip().lower() in {"publicar", "revisar", "descartar"}
 
     queued_requests = [
         request
         for request in pending_requests
         if not request.get("kapsoOutboundMessageId")
     ]
-    if queued_requests:
+    if queued_requests and not is_approval_action:
         for queued_request in queued_requests:
-            _deliver_queued_approval(
+            delivered = _deliver_queued_approval(
                 convex=convex,
                 kapso_client=kapso_client,
                 pending=queued_request,
@@ -342,8 +371,8 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 commit_analyzer=commit_analyzer,
                 github_client=github_client,
             )
-        return
-    if recovered_legacy:
+            if not delivered:
+                break
         return
 
     # Fetch post and latest version for decisions on the current approval.
@@ -372,12 +401,16 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     if version_num != original_version_num:
         # The user may have replied to the old draft. Do not interpret that
         # reply as approval for content they have not seen yet.
-        outbound = kapso_client.send_draft_for_approval(
-            to_phone=inbound.from_phone,
-            story_title=latest_title,
-            post_body=draft_body,
-            version=version_num,
-        )
+        try:
+            outbound = kapso_client.send_draft_for_approval(
+                to_phone=inbound.from_phone,
+                story_title=latest_title,
+                post_body=draft_body,
+                version=version_num,
+            )
+        except httpx.HTTPStatusError as error:
+            logger.warning("Could not resend recovered draft: %s", error)
+            return
         if outbound.message_id:
             convex.set_approval_outbound_message_id(
                 approval_request_id=req_id,
@@ -527,7 +560,11 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     )
 
     if inbound.button_id == "approval_review":
-        outbound = kapso_client.send_revision_prompt(inbound.from_phone)
+        try:
+            outbound = kapso_client.send_revision_prompt(inbound.from_phone)
+        except httpx.HTTPStatusError as error:
+            logger.warning("Could not send revision prompt: %s", error)
+            return
         if outbound.message_id:
             convex.record_approval_message(
                 approval_request_id=req_id,
@@ -574,7 +611,10 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 status="completed",
                 metadata={"externalPostUrn": pub_res.post_urn},
             )
-            kapso_client.send_published_confirmation(inbound.from_phone, pub_res.post_urn)
+            try:
+                kapso_client.send_published_confirmation(inbound.from_phone, pub_res.post_urn)
+            except httpx.HTTPStatusError as error:
+                logger.warning("LinkedIn published but WhatsApp confirmation failed: %s", error)
         else:
             convex.update_post_status(post_id, "failed")
             convex.record_activity(
@@ -638,12 +678,16 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         )
 
         # Send new draft to WhatsApp
-        outbound = kapso_client.send_draft_for_approval(
-            to_phone=inbound.from_phone,
-            story_title=new_draft.title,
-            post_body=new_draft.body,
-            version=new_version_num,
-        )
+        try:
+            outbound = kapso_client.send_draft_for_approval(
+                to_phone=inbound.from_phone,
+                story_title=new_draft.title,
+                post_body=new_draft.body,
+                version=new_version_num,
+            )
+        except httpx.HTTPStatusError as error:
+            logger.warning("Revision was saved but WhatsApp delivery failed: %s", error)
+            return
 
         new_req_id = convex.record_approval_request(
             user_id=user_id,
@@ -666,10 +710,13 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
     elif decision.intent == "reject":
         convex.update_approval_request(approval_request_id=req_id, status="rejected")
         convex.update_post_status(post_id, "rejected")
-        kapso_client.send_message(
-            inbound.from_phone,
-            "❌ Entendido, descarté la publicación de este borrador.",
-        )
+        try:
+            kapso_client.send_message(
+                inbound.from_phone,
+                "❌ Entendido, descarté la publicación de este borrador.",
+            )
+        except httpx.HTTPStatusError as error:
+            logger.warning("Draft rejected but WhatsApp confirmation failed: %s", error)
 
     else:
         # clarify or hold

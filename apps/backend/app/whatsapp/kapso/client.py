@@ -219,7 +219,9 @@ class KapsoClient:
             )
         # Keep the draft in a regular text message. WhatsApp interactive body
         # text has a tighter limit, and Kapso may reject a long generated post.
-        self.send_message(to_phone, full_message)
+        # Preserve its ID so a temporary button/rate-limit failure does not
+        # make the webhook resend the same story on every inbound message.
+        draft_message = self.send_message(to_phone, full_message)
         try:
             return self.send_interactive_buttons(
                 to_phone,
@@ -236,10 +238,17 @@ class KapsoClient:
             logger.warning(
                 "Falling back to text approval instructions for %s", to_phone
             )
-            return self.send_message(
-                to_phone,
-                "Puedes responder con: Publicar, Revisar o Descartar.",
-            )
+            try:
+                return self.send_message(
+                    to_phone,
+                    "Puedes responder con: Publicar, Revisar o Descartar.",
+                )
+            except httpx.HTTPStatusError:
+                logger.warning(
+                    "Draft text was delivered but approval controls were rate-limited for %s",
+                    to_phone,
+                )
+                return draft_message
 
     def send_published_confirmation(
         self,
