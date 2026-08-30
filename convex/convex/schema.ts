@@ -252,6 +252,32 @@ export default defineSchema({
     .index("by_request", ["approvalRequestId"])
     .index("by_message_id", ["messageId"]),
 
+  historicalDigests: defineTable({
+    userId: v.id("users"),
+    repositoryId: v.id("repositories"),
+    repositoryFullName: v.string(),
+    branch: v.optional(v.string()),
+    fingerprint: v.string(),
+    status: v.union(
+      v.literal("building"),
+      v.literal("awaiting_approval"),
+      v.literal("completed"),
+      v.literal("failed"),
+    ),
+    includedCommitShas: v.array(v.string()),
+    filteredCommitShas: v.array(v.string()),
+    storyId: v.optional(v.id("stories")),
+    postId: v.optional(v.id("posts")),
+    approvalRequestId: v.optional(v.id("approvalRequests")),
+    title: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_fingerprint", ["userId", "fingerprint"])
+    .index("by_user_updated_at", ["userId", "updatedAt"]),
+
   activityEvents: defineTable({
     userId: v.id("users"),
     repositoryId: v.optional(v.id("repositories")),
@@ -276,11 +302,14 @@ export default defineSchema({
       v.literal("deep_technical"),
       v.literal("direct_minimal"),
       v.literal("storyteller"),
+      v.literal("pragmatic_lead"),
+      v.literal("startup_founder"),
     ),
     targetAudience: v.union(
       v.literal("senior_engineers"),
       v.literal("tech_founders"),
       v.literal("recruiters"),
+      v.literal("junior_developers"),
       v.literal("general_tech"),
     ),
     technicalLevel: v.union(v.literal("high"), v.literal("medium"), v.literal("accessible")),
@@ -290,8 +319,13 @@ export default defineSchema({
       v.literal("discussion_question"),
       v.literal("github_link"),
       v.literal("lesson_takeaway"),
+      v.literal("custom_cta"),
       v.literal("none"),
     ),
+    customCTA: v.optional(v.string()),
+    customRules: v.optional(v.array(v.string())),
+    includeCodeSnippets: v.optional(v.boolean()),
+    includeMetrics: v.optional(v.boolean()),
     hashtags: v.array(v.string()),
     allowedFormats: v.array(v.string()),
     autoPublish: v.boolean(),

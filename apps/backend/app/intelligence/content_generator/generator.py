@@ -14,7 +14,25 @@ ContentFormat = Literal[
     "architecture_breakdown",
     "failure_story",
     "mini_case_study",
+    "benchmark_metric",
 ]
+
+TONE_DESCRIPTIONS: dict[str, str] = {
+    "humble_builder": "Humble Builder (transparent about challenges, honest about mistakes, grounded problem-solving without grandiosity)",
+    "deep_technical": "Deep Technical (deep engineering focus, data structures, algorithms, architectural trade-offs, systems internals)",
+    "direct_minimal": "Direct & Minimalist (concise, high signal-to-noise ratio, bullet points, zero fluff, straight to the solution)",
+    "storyteller": "Compelling Storyteller (engaging narrative hook, engineering tension, problem discovery, breakthrough moment, resolution)",
+    "pragmatic_lead": "Pragmatic Engineering Lead (focus on maintainability, developer velocity, technical debt, and team trade-offs)",
+    "startup_founder": "Technical Founder (speed of shipping, balance of clean architecture with user impact, product engineering)",
+}
+
+AUDIENCE_GUIDANCE: dict[str, str] = {
+    "senior_engineers": "Target Senior Engineers & Staff Architects: use precise technical vocabulary, trade-offs, and scalability considerations.",
+    "tech_founders": "Target CTOs & Technical Founders: highlight engineering velocity, architectural durability, and product impact.",
+    "recruiters": "Target Recruiters & Hiring Managers: highlight ownership, engineering craftsmanship, and problem-solving caliber.",
+    "junior_developers": "Target Junior Developers & Learners: be pedagogical, clear, and instructive regarding the 'why' behind decisions.",
+    "general_tech": "Target General Tech Community: accessible yet rigorous, communicating technical depth clearly.",
+}
 
 
 class ContentGenerator:
@@ -67,17 +85,41 @@ class ContentGenerator:
         from openai import OpenAI
 
         client = OpenAI(api_key=self.settings.openai_api_key)
+
+        tone_desc = TONE_DESCRIPTIONS.get(preferences.tone, preferences.tone)
+        audience_desc = AUDIENCE_GUIDANCE.get(preferences.target_audience, preferences.target_audience)
+
+        custom_rules_str = ""
+        if preferences.custom_rules:
+            custom_rules_str = "\nAuthor Custom Style Rules:\n" + "\n".join(
+                f"- {rule}" for rule in preferences.custom_rules
+            )
+
+        code_instruction = (
+            "- Include concise code or configuration snippets if it makes the technical solution concrete."
+            if preferences.include_code_snippets
+            else "- Focus on conceptual and architectural explanations rather than code blocks."
+        )
+
+        metrics_instruction = (
+            "- Highlight concrete numbers, diff stats, latency, or throughput if present in story evidence."
+            if preferences.include_metrics
+            else "- Focus on the qualitative and architectural outcomes."
+        )
+
         user_prompt = (
             f"Author Role: {preferences.role_title}\n"
             f"Language: {preferences.language}\n"
-            f"Tone: {preferences.tone}\n"
-            f"Target Audience: {preferences.target_audience}\n"
-            f"Technical Level: {preferences.technical_level}\n"
+            f"Tone of Voice: {tone_desc}\n"
+            f"Target Audience: {audience_desc}\n"
+            f"Technical Depth: {preferences.technical_level}\n"
             f"Post Length: {preferences.post_length}\n"
             f"Allowed Formats: {', '.join(preferences.allowed_formats)}\n"
-            f"Avoid Words: {', '.join(preferences.avoid_words)}\n"
-            f"Preferred CTA: {preferences.preferred_cta}\n"
-            f"Hashtags: {' '.join(preferences.hashtags)}\n\n"
+            f"Forbidden Buzzwords: {', '.join(preferences.avoid_words)}\n"
+            f"Preferred CTA Mode: {preferences.preferred_cta}\n"
+            + (f"Custom CTA Text: {preferences.custom_cta}\n" if preferences.custom_cta else "")
+            + f"Hashtags: {' '.join(preferences.hashtags)}\n"
+            + f"{custom_rules_str}\n\n"
             f"Story Title: {story.title}\n"
             f"Summary: {story.summary}\n"
             f"Problem: {story.problem}\n"
@@ -98,14 +140,20 @@ class ContentGenerator:
                 {
                     "role": "system",
                     "content": (
-                        f"You are an engineering content creator writing authentic LinkedIn posts in {preferences.language}. "
-                        "Rules:\n"
-                        "- Evidence before content: never invent benchmarks, numbers, or fake users.\n"
-                        f"- Tone: {preferences.tone}. Technical Level: {preferences.technical_level}.\n"
-                        f"- Never use these buzzwords: {', '.join(preferences.avoid_words)}.\n"
-                        "- Choose the most natural format from the allowed formats: mini_case_study, build_log, before_after, architecture_breakdown, failure_story, or problem_solution.\n"
-                        "- The title must describe the technical outcome, never just a SHA or 'Shipping: Commit ...'.\n"
-                        "- Use concrete repository evidence; do not invent metrics, users, integrations, or outcomes.\n"
+                        f"You are LaborIN's engineering content creator writing authentic LinkedIn posts in language code '{preferences.language}'.\n"
+                        "Core Directives:\n"
+                        "- Evidence before content: NEVER invent benchmarks, fake metrics, or unverified claims.\n"
+                        f"- Tone: {tone_desc}.\n"
+                        f"- Audience: {audience_desc}.\n"
+                        f"- Technical Depth: {preferences.technical_level}.\n"
+                        f"- Forbidden Buzzwords: NEVER use these words or cliches: {', '.join(preferences.avoid_words)}.\n"
+                        f"{code_instruction}\n"
+                        f"{metrics_instruction}\n"
+                        "- Choose the most natural format from the allowed formats: "
+                        f"{', '.join(preferences.allowed_formats)}.\n"
+                        "- The title must describe the technical outcome clearly (never 'Shipping: Commit ...' or SHA hashes).\n"
+                        "- If Preferred CTA is discussion_question, finish with a thought-provoking engineering question.\n"
+                        "- If Preferred CTA is custom_cta, incorporate the author's custom CTA text naturally.\n"
                         "- Return JSON with keys: title, body, format, format_rationale, grounded_claims."
                     ),
                 },
@@ -128,28 +176,40 @@ class ContentGenerator:
     ) -> LinkedInDraftResult:
         is_shorter = (
             preferences.post_length == "concise"
-            or (revision_feedback and any(
-                w in revision_feedback.lower() for w in ["corto", "short", "resume", "resumen", "menos"]
-            ))
+            or (
+                revision_feedback is not None
+                and any(
+                    w in revision_feedback.lower()
+                    for w in ["corto", "short", "resume", "resumen", "menos", "conciso"]
+                )
+            )
         )
 
-        hashtags_str = " ".join(preferences.hashtags) if preferences.hashtags else "#SoftwareEngineering #ProofOfWork"
+        hashtags_str = (
+            " ".join(preferences.hashtags)
+            if preferences.hashtags
+            else "#SoftwareEngineering #ProofOfWork"
+        )
         format_name = self._select_format(story, preferences)
 
         cta_str = ""
-        if preferences.preferred_cta == "discussion_question":
-            cta_str = "¿Cómo manejan este trade-off en sus proyectos?\n\n"
+        if preferences.preferred_cta == "custom_cta" and preferences.custom_cta:
+            cta_str = f"{preferences.custom_cta.strip()}\n\n"
+        elif preferences.preferred_cta == "discussion_question":
+            cta_str = "¿Cómo han abordado este trade-off en sus arquitecturas de producción?\n\n"
         elif preferences.preferred_cta == "lesson_takeaway":
-            cta_str = "📌 Conclusión: Medir siempre antes de optimizar.\n\n"
+            cta_str = "📌 Conclusión técnica: Medir el impacto real y aislar responsabilidades antes de optimizar.\n\n"
+        elif preferences.preferred_cta == "github_link":
+            cta_str = "🔗 Detalles del commit y pull request en el repositorio.\n\n"
 
         if is_shorter:
             short_sections = [
                 f"💡 {story.title}",
                 story.summary,
-                f"El reto: {story.problem or 'resolver una necesidad concreta del producto'}.",
-                f"Qué hicimos: {story.solution or 'aplicamos el cambio y lo dejamos listo para validación'}.",
-                f"Resultado: {story.impact or 'el cambio quedó incorporado al proyecto'}.",
-                f"Aprendizaje: {story.learning or 'la evidencia concreta hace que una historia técnica sea entendible'}.",
+                f"El reto: {story.problem or 'resolver una necesidad concreta del sistema'}.",
+                f"La solución: {story.solution or 'implementamos el cambio con validación estricta'}.",
+                f"Impacto: {story.impact or 'el cambio quedó incorporado de forma segura'}.",
+                f"Aprendizaje: {story.learning or 'la evidencia técnica hace que cada decisión sea transparente'}.",
             ]
             body = (
                 "\n\n".join(short_sections)
@@ -165,48 +225,55 @@ class ContentGenerator:
                 grounded_claims=self._grounded_claims(story),
             )
 
-        # Standard draft: each option follows one of the narrative shapes used
-        # in the demo examples, while keeping every claim grounded in the story.
+        # Standard draft according to selected format
         attempts = ""
         if story.attempts:
-            attempts = "Cómo llegamos:\n" + "\n".join(
+            attempts = "Camino de iteración:\n" + "\n".join(
                 f"• {attempt}" for attempt in story.attempts[:5]
             ) + "\n\n"
-        problem = story.problem or "Resolver una necesidad concreta del producto."
-        solution = story.solution or "Aplicamos el cambio y lo dejamos listo para validación."
-        impact = story.impact or "El cambio quedó incorporado al proyecto."
+        problem = story.problem or "Resolver una necesidad concreta del producto y sistema."
+        solution = story.solution or "Aplicamos el cambio y lo dejamos listo para validación y tests."
+        impact = story.impact or "El cambio quedó incorporado al proyecto con aislamiento verificado."
         learning = story.learning or "La evidencia concreta hace que una historia técnica sea entendible."
 
         if format_name == "before_after":
             narrative = (
-                f"Antes:\n{problem}\n\n"
-                f"La decisión:\n{solution}\n\n"
-                f"Después:\n{impact}"
+                f"Antes del cambio:\n{problem}\n\n"
+                f"La decisión técnica:\n{solution}\n\n"
+                f"Después / Resultado:\n{impact}"
             )
         elif format_name == "architecture_breakdown":
             narrative = (
-                f"El cambio de arquitectura:\n{story.summary}\n\n"
-                f"Qué estaba fallando:\n{problem}\n\n"
-                f"Cómo lo resolvimos:\n{solution}\n\n"
-                f"Qué aprendimos:\n{learning}\n\n"
+                f"Desglose de Arquitectura:\n{story.summary}\n\n"
+                f"Punto de dolor:\n{problem}\n\n"
+                f"Implementación técnica:\n{solution}\n\n"
+                f"Aprendizaje clave:\n{learning}\n\n"
                 f"Resultado:\n{impact}"
             )
         elif format_name == "build_log":
             narrative = (
-                f"{story.summary}\n\n"
-                f"El reto:\n{problem}\n\n"
+                f"Ship Log / Diario de Construcción:\n{story.summary}\n\n"
+                f"El reto de partida:\n{problem}\n\n"
                 f"{attempts}"
-                f"La implementación:\n{solution}\n\n"
-                f"Qué cambió:\n{impact}\n\n"
-                f"Lo que nos llevamos:\n{learning}"
+                f"Qué se implementó:\n{solution}\n\n"
+                f"Resultado en producción:\n{impact}\n\n"
+                f"Lección aprendida:\n{learning}"
             )
         elif format_name == "failure_story":
             narrative = (
-                f"El punto de partida:\n{problem}\n\n"
-                f"Lo que intentamos:\n{attempts or solution}\n\n"
-                f"La corrección:\n{solution}\n\n"
-                f"La lección:\n{learning}\n\n"
-                f"Resultado:\n{impact}"
+                f"El error / Caso de estudio:\n{problem}\n\n"
+                f"Lo que se intentó:\n{attempts or solution}\n\n"
+                f"La corrección definitiva:\n{solution}\n\n"
+                f"La lección aprendida:\n{learning}\n\n"
+                f"Impacto:\n{impact}"
+            )
+        elif format_name == "benchmark_metric":
+            narrative = (
+                f"Optimización & Métricas:\n{story.summary}\n\n"
+                f"Cuello de botella:\n{problem}\n\n"
+                f"Solución técnica aplicada:\n{solution}\n\n"
+                f"Impacto y rendimiento:\n{impact}\n\n"
+                f"Conclusión:\n{learning}"
             )
         else:
             narrative = (
@@ -237,25 +304,26 @@ class ContentGenerator:
             "failure_learning": "failure_story",
             "build_log": "build_log",
             "before_after": "before_after",
+            "performance_optimization": "benchmark_metric",
         }
         preferred: ContentFormat = candidates.get(story.story_type, "mini_case_study")
         allowed = set(preferences.allowed_formats)
         if preferred in allowed:
             return preferred
-        for fallback in ("mini_case_study", "problem_solution", "build_log"):
+        for fallback in ("mini_case_study", "problem_solution", "build_log", "before_after"):
             if fallback in allowed:
                 return cast(ContentFormat, fallback)
         return "problem_solution"
 
-
     @staticmethod
     def _format_rationale(format_name: ContentFormat) -> str:
         return {
-            "before_after": "El formato Antes / Después hace visible el cambio y su resultado.",
-            "build_log": "El build log cuenta el recorrido desde el reto hasta la implementación.",
-            "architecture_breakdown": "El desglose de arquitectura explica la decisión y sus consecuencias.",
-            "failure_story": "La historia de aprendizaje muestra el problema, la corrección y la lección.",
-            "mini_case_study": "El mini caso conecta contexto, decisión, resultado y aprendizaje.",
+            "before_after": "El formato Antes / Después hace visible la transformación y su resultado tangible.",
+            "build_log": "El build log cuenta el recorrido cronológico desde el reto hasta la implementación.",
+            "architecture_breakdown": "El desglose de arquitectura explica las decisiones de diseño y sus trade-offs.",
+            "failure_story": "La historia de aprendizaje muestra el error original, la corrección y la lección técnica.",
+            "benchmark_metric": "El formato de métricas destaca la optimización, latencia y rendimiento.",
+            "mini_case_study": "El mini caso conecta contexto, decisión de ingeniería, impacto y aprendizaje.",
         }.get(format_name, "El formato Problema / Solución resume el cambio con evidencia concreta.")
 
     @staticmethod

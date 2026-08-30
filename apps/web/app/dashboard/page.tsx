@@ -21,6 +21,7 @@ import {
 import { api } from "@convex/api";
 import { useAuth } from "../../contexts/auth-context";
 import { AccountsSettings } from "@/components/accounts-settings";
+import { HistoricalDigestLauncher } from "@/components/historical-digest-launcher";
 import { LiveActivityStream } from "@/components/live-activity-stream";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { StoryDraftViewer } from "@/components/story-draft-viewer";
@@ -38,7 +39,7 @@ function DashboardContent() {
   const { user, userId, isAuthenticated, isLoading, logout } = useAuth();
 
   const [tabOverride, setTabOverride] = useState<"dashboard" | "onboarding" | "channels" | null>(null);
-  
+
   const paramTab = searchParams.get("tab");
   const initialComputedTab: "dashboard" | "onboarding" | "channels" =
     paramTab === "onboarding" ? "onboarding" : paramTab === "channels" || paramTab === "settings" ? "channels" : "dashboard";
@@ -65,6 +66,16 @@ function DashboardContent() {
   const repositories = useQuery(
     api.repositories.listForUser,
     userId ? { userId } : "skip",
+  );
+
+  const stories = useQuery(
+    api.stories.listForUser,
+    userId ? { userId, limit: 10 } : "skip",
+  );
+
+  const posts = useQuery(
+    api.posts.listForUser,
+    userId ? { userId, limit: 10 } : "skip",
   );
 
   if (isLoading) {
@@ -152,7 +163,7 @@ function DashboardContent() {
                 }`}
               >
                 <Wand2 className="size-3.5" />
-                Voz & Estilo
+                Voz & Personalización
                 {prefs?.onboardingCompleted ? (
                   <span className="size-1.5 rounded-full bg-emerald-400" />
                 ) : (
@@ -195,12 +206,23 @@ function DashboardContent() {
           </div>
         </header>
 
-        {/* Subhead Banner */}
-        <section className="py-6">
+        {/* Status & Subhead Bar */}
+        <section className="py-6 flex flex-wrap items-center justify-between gap-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-zinc-400">
             <Radio className="size-3.5 text-emerald-400 animate-pulse" />
-            Espacio de trabajo seguro y aislado · WhatsApp + GitHub + LinkedIn
+            Espacio de trabajo seguro y multi-inquilino · WhatsApp + GitHub + LinkedIn
           </div>
+
+          {/* Quick Active Voice Pill */}
+          {prefs && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-zinc-500">Voz Activa:</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300 font-mono text-[11px]">
+                <Sparkles className="size-3" />
+                {prefs.tone} ({prefs.language.toUpperCase()})
+              </span>
+            </div>
+          )}
         </section>
 
         {/* Tab View: CHANNELS & ACCOUNTS SETTINGS */}
@@ -219,6 +241,55 @@ function DashboardContent() {
         ) : (
           /* Tab View: LIVE DASHBOARD */
           <>
+            {/* Quick Metrics Bar */}
+            <div className="mb-6 grid gap-3 grid-cols-2 sm:grid-cols-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between">
+                <span className="text-xs text-zinc-400">Historias Detectadas</span>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-white">{stories?.length ?? 0}</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">IA clusters</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between">
+                <span className="text-xs text-zinc-400">Borradores Generados</span>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-white">{posts?.length ?? 0}</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">LinkedIn</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between">
+                <span className="text-xs text-zinc-400">Repositorios Conectados</span>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-white">{repositories?.length ?? 0}</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">GitHub</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between">
+                <span className="text-xs text-zinc-400">Personalización de Voz</span>
+                <div className="mt-2 flex items-center gap-1.5">
+                  {prefs?.onboardingCompleted ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300">
+                      <CheckCircle2 className="size-3.5 text-emerald-400" /> Activa & Calibrada
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setTabOverride("onboarding")}
+                      className="text-xs font-semibold text-amber-400 hover:underline"
+                    >
+                      Calibrar Voz →
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Historical Project Digest */}
+            <HistoricalDigestLauncher repositories={repositories} />
+
             {/* Pipeline Overview */}
             <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {stages.map((stage) => {
@@ -250,9 +321,9 @@ function DashboardContent() {
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="size-4 text-zinc-300" />
-                    <h2 className="text-lg font-semibold tracking-tight text-white">Narrativa & Borrador</h2>
+                    <h2 className="text-lg font-semibold tracking-tight text-white">Narrativa & Borrador de Autor</h2>
                   </div>
-                  <span className="font-mono text-xs text-zinc-500">Actualización reactiva</span>
+                  <span className="font-mono text-xs text-zinc-500">Reactivo · Convex Sync</span>
                 </div>
 
                 <StoryDraftViewer userId={userId} />
@@ -278,7 +349,7 @@ function DashboardContent() {
 
         {/* Footer */}
         <footer className="flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <span>LaborIN · Content Machine Multi-Tenant Dashboard</span>
+          <span>LaborIN · Proof of Work & Story Intelligence</span>
           <span>LinkedIn + Kapso WhatsApp + Convex + FastAPI + Next.js</span>
         </footer>
       </div>

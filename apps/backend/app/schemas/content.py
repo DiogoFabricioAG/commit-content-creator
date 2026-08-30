@@ -23,6 +23,7 @@ class LinkedInDraftResult(BaseModel):
         "architecture_breakdown",
         "failure_story",
         "mini_case_study",
+        "benchmark_metric",
     ] = Field(default="problem_solution")
     format_rationale: str = Field(
         default="", description="Why this format was chosen for the story"

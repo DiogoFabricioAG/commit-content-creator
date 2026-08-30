@@ -92,6 +92,15 @@ class ConvexGateway:
         result = self.client.query("repositories:getByFullName", {"fullName": full_name})
         return cast(dict[str, Any], result) if result else None
 
+    def get_repository_by_id_for_user(
+        self, *, user_id: str, repository_id: str
+    ) -> dict[str, Any] | None:
+        result = self.client.query(
+            "repositories:getByIdForUser",
+            {"userId": user_id, "repositoryId": repository_id},
+        )
+        return cast(dict[str, Any] | None, result)
+
     def list_repositories_for_user(self, user_id: str) -> list[dict[str, Any]]:
         result = self.client.query("repositories:listForUser", {"userId": user_id})
         return cast(list[dict[str, Any]], result or [])
@@ -334,6 +343,61 @@ class ConvexGateway:
         result = self.client.mutation("postVersions:record", payload)
         return cast(str, result)
 
+    # Historical digest runs
+    def reserve_historical_digest(
+        self,
+        *,
+        user_id: str,
+        repository_id: str,
+        repository_full_name: str,
+        branch: str | None,
+        fingerprint: str,
+    ) -> dict[str, Any]:
+        payload: dict[str, CoercibleToConvexValue] = {
+            "userId": user_id,
+            "repositoryId": repository_id,
+            "repositoryFullName": repository_full_name,
+            "fingerprint": fingerprint,
+        }
+        if branch:
+            payload["branch"] = branch
+        result = self.client.mutation("historicalDigests:reserve", payload)
+        return cast(dict[str, Any], result)
+
+    def complete_historical_digest(
+        self,
+        *,
+        digest_id: str,
+        included_commit_shas: list[str],
+        filtered_commit_shas: list[str],
+        story_id: str,
+        post_id: str,
+        approval_request_id: str,
+        title: str,
+        summary: str,
+        status: str = "awaiting_approval",
+    ) -> None:
+        self.client.mutation(
+            "historicalDigests:complete",
+            {
+                "digestId": digest_id,
+                "includedCommitShas": included_commit_shas,
+                "filteredCommitShas": filtered_commit_shas,
+                "storyId": story_id,
+                "postId": post_id,
+                "approvalRequestId": approval_request_id,
+                "title": title,
+                "summary": summary,
+                "status": status,
+            },
+        )
+
+    def fail_historical_digest(self, *, digest_id: str, error: str) -> None:
+        self.client.mutation(
+            "historicalDigests:fail",
+            {"digestId": digest_id, "error": error[:1000]},
+        )
+
     def upload_media(self, *, content: bytes, mime_type: str) -> dict[str, str]:
         upload_url = cast(str, self.client.mutation("media:generateUploadUrl", {}))
         with httpx.Client(timeout=30.0) as client:
@@ -472,6 +536,14 @@ class ConvexGateway:
                 post_length=raw.get("postLength") or defaults.post_length,
                 avoid_words=raw.get("avoidWords") or defaults.avoid_words,
                 preferred_cta=raw.get("preferredCTA") or defaults.preferred_cta,
+                custom_cta=raw.get("customCTA"),
+                custom_rules=raw.get("customRules") or defaults.custom_rules,
+                include_code_snippets=bool(
+                    raw.get("includeCodeSnippets", defaults.include_code_snippets)
+                ),
+                include_metrics=bool(
+                    raw.get("includeMetrics", defaults.include_metrics)
+                ),
                 hashtags=raw.get("hashtags") or defaults.hashtags,
                 allowed_formats=raw.get("allowedFormats") or defaults.allowed_formats,
                 auto_publish=bool(raw.get("autoPublish", defaults.auto_publish)),
@@ -500,6 +572,13 @@ class ConvexGateway:
             "autoPublish": preferences.auto_publish,
             "onboardingCompleted": preferences.onboarding_completed,
         }
+        if preferences.custom_cta is not None:
+            payload["customCTA"] = preferences.custom_cta
+        if preferences.custom_rules:
+            payload["customRules"] = preferences.custom_rules
+        payload["includeCodeSnippets"] = preferences.include_code_snippets
+        payload["includeMetrics"] = preferences.include_metrics
+
         result = self.client.mutation("preferences:save", payload)
         return cast(str, result)
 

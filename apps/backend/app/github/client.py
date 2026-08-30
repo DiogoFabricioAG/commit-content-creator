@@ -64,6 +64,62 @@ class GitHubClient:
             self._metadata_for_commit(sha, fallback_metadata),
         )
 
+    def fetch_repository_history(
+        self,
+        repository_full_name: str,
+        *,
+        branch: str | None = None,
+        max_commits: int = 500,
+    ) -> list[NormalizedCommit]:
+        """Fetch the repository history with GitHub pagination and commit evidence."""
+        if max_commits < 1:
+            return []
+
+        commits: list[NormalizedCommit] = []
+        page = 1
+        list_url = f"https://api.github.com/repos/{repository_full_name}/commits"
+        with httpx.Client(timeout=20.0) as client:
+            while len(commits) < max_commits:
+                per_page = min(100, max_commits - len(commits))
+                params: dict[str, str | int] = {"page": page, "per_page": per_page}
+                if branch:
+                    params["sha"] = branch
+
+                response = client.get(list_url, headers=self.headers, params=params)
+                response.raise_for_status()
+                raw_payload = response.json()
+                if not isinstance(raw_payload, list):
+                    raise RuntimeError("GitHub commits endpoint returned an invalid payload")
+                payload = cast(list[Any], raw_payload)
+
+                if not payload:
+                    break
+
+                for raw_item in payload:
+                    if not isinstance(raw_item, dict):
+                        continue
+                    item = cast(dict[str, Any], raw_item)
+                    sha = item.get("sha")
+                    if not isinstance(sha, str) or not sha.strip():
+                        continue
+                    commit = self.fetch_commit(
+                        repository_full_name,
+                        sha,
+                        fallback_metadata=item,
+                    )
+                    if branch and not commit.branch:
+                        commit = commit.model_copy(update={"branch": branch})
+                    commits.append(commit)
+                    if len(commits) >= max_commits:
+                        break
+
+                if len(payload) < per_page:
+                    break
+                page += 1
+
+        # GitHub returns newest first; narrative attempts read naturally oldest first.
+        return list(reversed(commits))
+
     @staticmethod
     def _commit_timestamp(commit_data: dict[str, Any]) -> int:
         committer = commit_data.get("committer")
@@ -143,7 +199,11 @@ class GitHubClient:
     def _build_from_metadata(self, sha: str, metadata: dict[str, Any] | None) -> NormalizedCommit:
         meta = metadata or {}
         author_name = "Developer"
-        author_data = meta.get("author")
+        nested_commit = meta.get("commit")
+        nested_commit_data = (
+            cast(dict[str, Any], nested_commit) if isinstance(nested_commit, dict) else {}
+        )
+        author_data = meta.get("author") or nested_commit_data.get("author")
         if isinstance(author_data, dict):
             author_dict = cast(dict[str, Any], author_data)
             raw_name = author_dict.get("name")
@@ -160,7 +220,7 @@ class GitHubClient:
         removed = cast(list[Any], removed_value) if isinstance(removed_value, list) else []
 
         all_paths: list[Any] = list(dict.fromkeys([*added, *modified, *removed]))
-        raw_message = meta.get("message")
+        raw_message = meta.get("message") or nested_commit_data.get("message")
         message = str(raw_message).strip() if raw_message else ""
         if not message or re.fullmatch(r"commit\s+[0-9a-f]{7,}", message, re.IGNORECASE):
             message = self._message_from_paths(all_paths)
@@ -181,7 +241,11 @@ class GitHubClient:
         files = normalize_commit_files(raw_files)
 
         committed_at = 1724930000000
-        timestamp = meta.get("timestamp")
+        timestamp = cast(str | None, meta.get("timestamp"))
+        if not timestamp:
+            nested_author = cast(dict[str, Any] | None, nested_commit_data.get("author"))
+            if isinstance(nested_author, dict):
+                timestamp = cast(str | None, nested_author.get("date"))
         if isinstance(timestamp, str):
             try:
                 committed_at = int(datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp() * 1000)
