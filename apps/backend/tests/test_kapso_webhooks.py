@@ -18,6 +18,8 @@ from app.whatsapp.kapso.webhooks import (
     [
         ("genera una imagen y adjúntala al borrador", True),
         ("crea una imagen para este post", True),
+        ("esto genera una infografía a partir del commit, y luego lo adjuntas", True),
+        ("crea un diagrama de arquitectura y adjúntalo", True),
         ("hazlo más corto", False),
         ("quiero publicar", False),
     ],

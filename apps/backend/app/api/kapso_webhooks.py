@@ -27,6 +27,7 @@ from app.whatsapp.kapso.client import KapsoClient
 from app.whatsapp.kapso.webhooks import (
     InvalidKapsoSignature,
     parse_kapso_inbound_messages,
+    requests_image_generation,
     verify_kapso_signature,
 )
 
@@ -105,23 +106,6 @@ def _request_waiting_for_revision_feedback(
         if direction == "outbound":
             return is_revision_prompt(message.get("content"))
     return False
-
-
-def _requests_image_generation(message: str) -> bool:
-    normalized = "".join(
-        character
-        for character in unicodedata.normalize("NFKD", message.lower())
-        if not unicodedata.combining(character)
-    )
-    return any(
-        phrase in normalized
-        for phrase in (
-            "genera una imagen",
-            "genera imagen",
-            "crea una imagen",
-            "haz una imagen",
-        )
-    )
 
 
 def _normalized_commits_from_convex(records: list[dict[str, Any]]) -> list[NormalizedCommit]:
@@ -493,7 +477,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
 
     # Explicit media command. This remains inside the user-initiated 24-hour
     # window and attaches the generated asset to the current post version.
-    if _requests_image_generation(inbound.body):
+    if requests_image_generation(inbound.body):
         convex.record_approval_message(
             approval_request_id=req_id,
             direction="inbound",

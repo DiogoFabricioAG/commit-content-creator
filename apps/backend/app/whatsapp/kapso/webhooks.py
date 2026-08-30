@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import unicodedata
 from typing import Any, cast
 
 from app.schemas.kapso import KapsoInboundMessage
@@ -179,6 +180,45 @@ def parse_kapso_inbound_message(payload: dict[str, Any]) -> KapsoInboundMessage 
 
 
 def requests_image_generation(message: str) -> bool:
-    lowered = message.lower()
-    return "imagen" in lowered or "image" in lowered or "foto" in lowered or "picture" in lowered
+    normalized = "".join(
+        character
+        for character in unicodedata.normalize("NFKD", message.lower())
+        if not unicodedata.combining(character)
+    )
+    if any(
+        phrase in normalized
+        for phrase in (
+            "genera una imagen",
+            "genera imagen",
+            "crea una imagen",
+            "haz una imagen",
+            "genera una infograf",
+            "genera infograf",
+            "crea una infograf",
+            "haz una infograf",
+            "genera un diagrama",
+            "crea un diagrama",
+            "haz un diagrama",
+            "diagrama de arquitectura",
+        )
+    ):
+        return True
 
+    media_keywords = ("imagen", "image", "foto", "picture", "infograf", "diagrama")
+    request_verbs = (
+        "genera",
+        "generar",
+        "crea",
+        "crear",
+        "haz",
+        "hacer",
+        "adjunta",
+        "adjuntar",
+        "acompaña",
+        "acompanar",
+        "anade",
+        "añade",
+    )
+    return any(keyword in normalized for keyword in media_keywords) and any(
+        verb in normalized for verb in request_verbs
+    )
