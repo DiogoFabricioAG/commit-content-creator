@@ -9,7 +9,7 @@ class VisualRequest(BaseModel):
     )
     instruction: str = Field(
         min_length=1,
-        max_length=1000,
+        max_length=2000,
         description="The user's visual direction, preserved as a complete instruction",
     )
     attach_to_draft: bool = Field(

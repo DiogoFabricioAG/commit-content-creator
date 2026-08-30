@@ -69,7 +69,7 @@ class OpenAIImageGenerator:
         user_request: str = "",
         visual_kind: str = "image",
     ) -> str:
-        requested_format = user_request.strip()[:1000] or "Create a visual summary of the story."
+        requested_format = user_request.strip()[:2000] or "Create a visual summary of the story."
         format_label = visual_kind.replace("_", " ")
         return (
             f"Create a polished {format_label} in Spanish for a software engineering LinkedIn post, "

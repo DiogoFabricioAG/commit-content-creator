@@ -56,19 +56,24 @@ def test_agent_uses_gpt_tool_call_for_natural_visual_request(monkeypatch: Any) -
     settings = Settings(app_env="test", openai_api_key="test-key")
     agent = ApprovalAgent(settings)
 
-    decision = agent.interpret_message(
+    request = (
         "Quiero que esto se entienda de un vistazo: acompáñalo con una pieza visual "
         "que explique el problema, el cambio y el resultado."
     )
+    decision = agent.interpret_message(request)
 
     assert fake_client is not None
     assert decision.intent == "generate_visual"
     assert decision.visual_request is not None
     assert decision.visual_request.kind == "infographic"
-    assert "texto legible" in decision.visual_request.instruction
+    assert decision.visual_request.instruction == request
     tools = fake_client.captured["tools"]
     assert tools[0]["name"] == "request_visual_asset"
     assert tools[0]["strict"] is True
+    assert (
+        tools[0]["parameters"]["properties"]["instruction"]["maxLength"]
+        == 2000
+    )
     assert fake_client.captured["text"] == {"format": {"type": "json_object"}}
     assert fake_client.captured["instructions"]
     assert "json" in fake_client.captured["input"]

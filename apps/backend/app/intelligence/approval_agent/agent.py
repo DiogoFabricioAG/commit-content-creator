@@ -7,6 +7,7 @@ from app.schemas.approval import ApprovalDecision, VisualRequest
 
 logger = logging.getLogger(__name__)
 
+MAX_VISUAL_INSTRUCTION_LENGTH = 2000
 
 VISUAL_REQUEST_TOOL: dict[str, Any] = {
     "type": "function",
@@ -33,7 +34,11 @@ VISUAL_REQUEST_TOOL: dict[str, Any] = {
             },
             "instruction": {
                 "type": "string",
-                "description": "The full visual instruction extracted from the user's message",
+                "maxLength": MAX_VISUAL_INSTRUCTION_LENGTH,
+                "description": (
+                    "The user's original visual instruction, without adding unrelated details. "
+                    "Keep it concise and within 2000 characters."
+                ),
             },
             "attach_to_draft": {
                 "type": "boolean",
@@ -121,6 +126,9 @@ class ApprovalAgent:
             ):
                 continue
             tool_arguments = json.loads(tool_call.arguments)
+            original_request = message.strip()
+            if original_request:
+                tool_arguments["instruction"] = original_request[:MAX_VISUAL_INSTRUCTION_LENGTH]
             visual_request = VisualRequest.model_validate(tool_arguments)
             return ApprovalDecision(
                 intent="generate_visual",
