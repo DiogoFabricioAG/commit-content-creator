@@ -2,6 +2,8 @@ import hashlib
 import hmac
 
 import pytest
+from app.api.kapso_webhooks import approval_action_from_inbound, is_revision_prompt
+from app.schemas.kapso import KapsoInboundMessage
 from app.whatsapp.kapso.webhooks import (
     InvalidKapsoSignature,
     parse_kapso_inbound_message,
@@ -172,3 +174,35 @@ def test_parse_kapso_flattened_button_reply_and_content() -> None:
     assert inbound.button_id == "approval_review"
     assert inbound.button_title == "Revisar"
     assert inbound.body == "Revisar"
+
+
+@pytest.mark.parametrize(
+    ("button_id", "button_title", "body", "expected"),
+    [
+        ("approval_review", None, "", "review"),
+        (None, "Revisar", "Revisar", "review"),
+        (None, None, "Publicar", "publish"),
+        (None, None, "Descartar", "reject"),
+    ],
+)
+def test_approval_action_accepts_button_and_text_variants(
+    button_id: str | None,
+    button_title: str | None,
+    body: str,
+    expected: str,
+) -> None:
+    inbound = KapsoInboundMessage(
+        message_id="msg-action",
+        from_phone="+51923790280",
+        body=body,
+        button_id=button_id,
+        button_title=button_title,
+    )
+
+    assert approval_action_from_inbound(inbound) == expected
+
+
+def test_revision_prompt_is_detected_as_pending_feedback() -> None:
+    assert is_revision_prompt(
+        "✍️ Claro. Dime qué quieres cambiar del borrador y preparo una nueva versión."
+    )

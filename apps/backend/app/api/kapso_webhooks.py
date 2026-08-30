@@ -60,7 +60,7 @@ def _inbound_context_message_id(inbound: KapsoInboundMessage) -> str | None:
     return None
 
 
-def _approval_action(inbound: KapsoInboundMessage) -> str | None:
+def approval_action_from_inbound(inbound: KapsoInboundMessage) -> str | None:
     """Return a stable approval action across Kapso webhook payload variants."""
     candidates = (inbound.button_id, inbound.button_title, inbound.body)
     for candidate in candidates:
@@ -78,6 +78,33 @@ def _approval_action(inbound: KapsoInboundMessage) -> str | None:
         if normalized in {"approval_reject", "descartar", "descartalo"}:
             return "reject"
     return None
+
+
+def is_revision_prompt(content: Any) -> bool:
+    if not isinstance(content, str):
+        return False
+    normalized = "".join(
+        character
+        for character in unicodedata.normalize("NFKD", content.lower())
+        if not unicodedata.combining(character)
+    )
+    return "dime que quieres cambiar" in normalized
+
+
+def _request_waiting_for_revision_feedback(
+    convex: ConvexGateway,
+    approval_request: dict[str, Any],
+) -> bool:
+    messages = convex.list_approval_messages_for_request(
+        str(approval_request.get("_id"))
+    )
+    for message in reversed(messages):
+        direction = message.get("direction")
+        if direction == "inbound":
+            return False
+        if direction == "outbound":
+            return is_revision_prompt(message.get("content"))
+    return False
 
 
 def _requests_image_generation(message: str) -> bool:
@@ -354,6 +381,15 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
             ),
             pending,
         )
+    else:
+        pending = next(
+            (
+                request
+                for request in reversed(pending_requests)
+                if _request_waiting_for_revision_feedback(convex, request)
+            ),
+            pending,
+        )
     req_id = str(pending.get("_id"))
     post_id = str(pending.get("postId"))
     user_id = str(pending.get("userId"))
@@ -365,12 +401,15 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         inbound_message_id=inbound.message_id,
     )
 
-    approval_action = _approval_action(inbound)
+    approval_action = approval_action_from_inbound(inbound)
+    awaiting_revision_feedback = _request_waiting_for_revision_feedback(
+        convex, pending
+    )
 
     # Approval actions always take precedence over queue delivery. Previously
     # this path re-sent every already-delivered legacy draft before handling a
     # button, causing duplicate stories and preventing publish/reject/review.
-    is_approval_action = approval_action is not None
+    is_approval_action = approval_action is not None or awaiting_revision_feedback
 
     queued_requests = [
         request
@@ -551,7 +590,16 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
         ),
     }
     button_decision = button_decisions.get(approval_action or "")
-    decision = button_decision or agent.interpret_message(inbound.body, draft_body)
+    decision = button_decision
+    if decision is None and awaiting_revision_feedback and approval_action is None:
+        decision = ApprovalDecision(
+            intent="revise",
+            feedback=inbound.body,
+            confidence=0.95,
+            reasoning="El usuario respondió al prompt de revisión pendiente.",
+        )
+    if decision is None:
+        decision = agent.interpret_message(inbound.body, draft_body)
 
     # Record message in Convex
     convex.record_approval_message(

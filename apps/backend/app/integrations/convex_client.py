@@ -539,3 +539,13 @@ class ConvexGateway:
 
         result = self.client.mutation("approvalMessages:record", payload)
         return cast(str, result)
+
+    def list_approval_messages_for_request(
+        self,
+        approval_request_id: str,
+    ) -> list[dict[str, Any]]:
+        result = self.client.query(
+            "approvalMessages:listForRequest",
+            {"approvalRequestId": approval_request_id},
+        )
+        return cast(list[dict[str, Any]], result or [])
