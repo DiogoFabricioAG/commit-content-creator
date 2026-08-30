@@ -22,6 +22,7 @@ from app.linkedin.publisher import LinkedInPublisher
 from app.schemas.approval import ApprovalDecision
 from app.schemas.github import CommitFile, NormalizedCommit
 from app.schemas.kapso import KapsoInboundMessage
+from app.schemas.preferences import EditorialPreferences
 from app.schemas.story import StoryDetectionResult
 from app.whatsapp.kapso.client import KapsoClient
 from app.whatsapp.kapso.webhooks import (
@@ -571,6 +572,7 @@ def _handle_inbound_whatsapp(inbound: KapsoInboundMessage) -> None:
                 post_body=draft_body,
                 user_request=visual_request.instruction,
                 visual_kind=visual_request.kind,
+                preferences=convex.get_user_preferences(user_id) or EditorialPreferences(),
             )
             stored_media = convex.upload_media(
                 content=generated_image.data,
