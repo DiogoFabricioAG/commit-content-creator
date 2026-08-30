@@ -61,12 +61,15 @@ def normalize_github_event(
             if isinstance(commit_id, str):
                 commit_shas.append(commit_id)
 
+        # Very large pushes can contain more than the per-event processing
+        # budget. Keep the newest commits so the webhook is accepted and the
+        # processor does not leave the delivery in a failed state.
         return NormalizedGitHubEvent(
             delivery_id=delivery_id,
             event_type="push",
             repository_full_name=repository_full_name,
             branch=ref.removeprefix("refs/heads/"),
-            commit_shas=commit_shas,
+            commit_shas=commit_shas[-100:],
         )
 
     if event_type == "pull_request":

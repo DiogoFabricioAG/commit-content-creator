@@ -11,6 +11,13 @@ from app.github.diff_normalizer import normalize_commit_files
 from app.schemas.github import CommitFile, NormalizedCommit
 
 
+class GitHubRateLimitError(RuntimeError):
+    """Raised when GitHub refuses a request because its API quota is exhausted."""
+
+
+HISTORY_DETAIL_LIMIT = 12
+
+
 class GitHubClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -76,6 +83,7 @@ class GitHubClient:
             return []
 
         commits: list[NormalizedCommit] = []
+        metadata_by_sha: dict[str, dict[str, Any]] = {}
         page = 1
         list_url = f"https://api.github.com/repos/{repository_full_name}/commits"
         with httpx.Client(timeout=20.0) as client:
@@ -86,6 +94,7 @@ class GitHubClient:
                     params["sha"] = branch
 
                 response = client.get(list_url, headers=self.headers, params=params)
+                self._raise_for_rate_limit(response)
                 response.raise_for_status()
                 raw_payload = response.json()
                 if not isinstance(raw_payload, list):
@@ -102,11 +111,10 @@ class GitHubClient:
                     sha = item.get("sha")
                     if not isinstance(sha, str) or not sha.strip():
                         continue
-                    commit = self.fetch_commit(
-                        repository_full_name,
-                        sha,
-                        fallback_metadata=item,
-                    )
+                    metadata_by_sha[sha] = item
+                    # The list endpoint gives enough metadata to include every
+                    # commit without making one detail request per commit.
+                    commit = self._build_from_metadata(sha, item)
                     if branch and not commit.branch:
                         commit = commit.model_copy(update={"branch": branch})
                     commits.append(commit)
@@ -118,7 +126,40 @@ class GitHubClient:
                 page += 1
 
         # GitHub returns newest first; narrative attempts read naturally oldest first.
-        return list(reversed(commits))
+        ordered_commits = list(reversed(commits))
+
+        # Fetch file-level diffs only for the latest representative commits.
+        # This keeps a 500-commit digest within the anonymous GitHub quota while
+        # preserving detailed evidence for the commits the analyzer reads.
+        detail_start = max(0, len(ordered_commits) - HISTORY_DETAIL_LIMIT)
+        for index in range(detail_start, len(ordered_commits)):
+            commit = ordered_commits[index]
+            detailed = self.fetch_commit(
+                repository_full_name,
+                commit.sha,
+                fallback_metadata=metadata_by_sha.get(commit.sha),
+            )
+            if branch and not detailed.branch:
+                detailed = detailed.model_copy(update={"branch": branch})
+            ordered_commits[index] = detailed
+
+        return ordered_commits
+
+    @staticmethod
+    def _raise_for_rate_limit(response: httpx.Response) -> None:
+        remaining = response.headers.get("x-ratelimit-remaining")
+        if response.status_code == 429 or (
+            response.status_code == 403 and remaining == "0"
+        ):
+            reset = response.headers.get("x-ratelimit-reset")
+            retry_after = response.headers.get("retry-after")
+            details = "GitHub API rate limit reached"
+            if retry_after:
+                details += f"; retry after {retry_after}s"
+            elif reset:
+                details += f"; reset epoch {reset}"
+            details += ". Configure a GitHub token for higher limits."
+            raise GitHubRateLimitError(details)
 
     @staticmethod
     def _commit_timestamp(commit_data: dict[str, Any]) -> int:

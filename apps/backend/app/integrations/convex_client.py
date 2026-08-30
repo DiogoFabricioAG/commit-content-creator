@@ -187,7 +187,9 @@ class ConvexGateway:
             "additions": commit.additions,
             "deletions": commit.deletions,
             "changedFiles": commit.changed_files,
-            "files": [f.model_dump() for f in commit.files],
+            # Convex optional fields omit absent values; sending Python None
+            # is different from omitting the field and fails validation.
+            "files": [f.model_dump(exclude_none=True) for f in commit.files],
             "status": commit.status,
         }
         if commit.branch:

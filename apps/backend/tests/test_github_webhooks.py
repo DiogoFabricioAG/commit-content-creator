@@ -48,6 +48,24 @@ def test_push_event_is_normalized_for_convex() -> None:
     }
 
 
+def test_normalize_large_push_keeps_newest_processing_budget() -> None:
+    payload = {
+        "ref": "refs/heads/main",
+        "repository": {"full_name": "demo/large-repo"},
+        "commits": [{"id": f"sha-{index}"} for index in range(103)],
+    }
+
+    event = normalize_github_event(
+        event_type="push",
+        delivery_id="delivery-large",
+        payload=payload,
+    )
+
+    assert len(event.commit_shas) == 100
+    assert event.commit_shas[0] == "sha-3"
+    assert event.commit_shas[-1] == "sha-102"
+
+
 def test_unsupported_event_is_rejected_before_persistence() -> None:
     with pytest.raises(InvalidGitHubPayload):
         normalize_github_event(
