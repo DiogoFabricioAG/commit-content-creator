@@ -330,8 +330,8 @@ function DashboardContent() {
               </div>
 
               {/* Right Column: Live Activity Stream */}
-              <div>
-                <div className="mb-4 flex items-center justify-between">
+              <div className="lg:sticky lg:top-8 self-start space-y-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Activity className="size-4 text-emerald-400" />
                     <h2 className="text-lg font-semibold tracking-tight text-white">Actividad en Vivo</h2>

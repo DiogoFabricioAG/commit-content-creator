@@ -35,7 +35,7 @@ export function LiveActivityStream({ userId }: LiveActivityStreamProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5 max-h-[580px] overflow-y-auto custom-scrollbar pr-1.5">
       {activities.map((act: Doc<"activityEvents">) => {
         const isCompleted = act.status === "completed";
         const isStarted = act.status === "started";
