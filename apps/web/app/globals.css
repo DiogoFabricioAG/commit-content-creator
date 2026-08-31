@@ -633,6 +633,12 @@ body {
   animation: terminal-blink 1.05s steps(1, end) infinite;
 }
 
+.visitor-count-loading {
+  color: var(--signal) !important;
+  text-shadow: 2px 0 var(--accent), -2px 0 var(--signal);
+  animation: visitor-signal 0.75s steps(2, end) infinite;
+}
+
 .landing-shell h1,
 .section-title,
 .cta-panel h2 {
@@ -1000,6 +1006,21 @@ body {
   }
 }
 
+@keyframes visitor-signal {
+  0%,
+  100% {
+    filter: blur(0.9px);
+    opacity: 0.45;
+    transform: translateX(-1px);
+  }
+
+  50% {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateX(1px);
+  }
+}
+
 @media (max-width: 767px) {
   .system-strip span:nth-child(2) {
     display: none;
@@ -1035,7 +1056,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .status-dot {
+  .status-dot,
+  .visitor-count-loading {
     animation: none;
   }
 }
