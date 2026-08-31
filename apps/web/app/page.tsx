@@ -16,6 +16,8 @@ import {
   WandSparkles,
 } from "lucide-react";
 
+import { LandingVisitorCount } from "../components/landing-visitor-count";
+
 const steps = [
   {
     number: "01",
@@ -122,6 +124,10 @@ export default function Home() {
           <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[var(--landing-subtle)]">
             <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-[var(--signal)]" /> Evidencia antes que contenido</span>
             <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-[var(--signal)]" /> Tú apruebas cada publicación</span>
+          </div>
+
+          <div className="mt-7">
+            <LandingVisitorCount />
           </div>
         </div>
 

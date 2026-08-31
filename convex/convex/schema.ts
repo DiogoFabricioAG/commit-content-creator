@@ -17,6 +17,18 @@ const commitStatus = v.union(
 );
 
 export default defineSchema({
+  landingMetrics: defineTable({
+    key: v.string(),
+    uniqueVisitors: v.number(),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  landingVisitors: defineTable({
+    visitorId: v.string(),
+    firstVisitedAt: v.number(),
+    lastVisitedAt: v.number(),
+  }).index("by_visitor_id", ["visitorId"]),
+
   users: defineTable({
     displayName: v.optional(v.string()),
     email: v.optional(v.string()),
